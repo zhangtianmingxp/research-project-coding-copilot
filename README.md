@@ -61,6 +61,34 @@ python C:\Users\<YOU>\.codex\skills\.system\skill-creator\scripts\quick_validate
 $env:PYTHONUTF8='1'
 ```
 
+## 安装为 Claude Code Skill
+
+Claude Code 也支持 `SKILL.md` 形式的 skills。可以同步到用户级 Claude skills 目录：
+
+```bash
+python scripts/sync_to_claude_skills.py
+```
+
+默认目标位置：
+
+```text
+C:\Users\<YOU>\.claude\skills\research-project-coding-copilot
+```
+
+也可以安装到某个项目内的 Claude skills 目录：
+
+```bash
+python scripts/sync_to_claude_skills.py --target .claude/skills/research-project-coding-copilot
+```
+
+在 Claude Code 中使用时，可以直接描述需求，例如：
+
+```text
+使用 research-project-coding-copilot skill，在当前仓库初始化科研项目推进流程。不要生成 prompt1，不要执行，不要 commit。
+```
+
+注意：`agents/openai.yaml` 是 Codex/OpenAI 侧 UI 元数据，Claude Code 可以忽略它；核心可用部分是 `SKILL.md`、`scripts/`、`references/` 和 `assets/template/`。
+
 ## 初始化科研项目
 
 在目标科研仓库中打开 Codex，然后说：
@@ -189,6 +217,7 @@ scripts/
   research_copilot.py
   install_template.py
   sync_to_codex_skills.py
+  sync_to_claude_skills.py
 references/
   workflow_protocol.md
   context_hygiene.md
@@ -208,6 +237,12 @@ assets/template/
 
 ```bash
 python scripts/sync_to_codex_skills.py
+```
+
+同步到本机 Claude Code skills 目录：
+
+```bash
+python scripts/sync_to_claude_skills.py
 ```
 
 然后新开 Codex / VS Code 窗口测试。
