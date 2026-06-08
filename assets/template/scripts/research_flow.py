@@ -59,6 +59,7 @@ def next_id() -> int:
 def required_paths() -> list[Path]:
     return [
         ROOT / "AGENTS.md",
+        ROOT / "PROJECT_RULES.md",
         ROOT / "project_plan.md",
         ROOT / "README.md",
         ANS_DIR / "README.md",

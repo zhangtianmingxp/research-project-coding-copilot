@@ -10,6 +10,7 @@
 
 - `AGENTS.md`
 - `.research_agent/AGENTS.md`
+- `PROJECT_RULES.md`
 - `project_plan.md`
 - `.research_agent/project_state.md`
 
@@ -27,6 +28,8 @@
 - 不自动生成下一轮 prompt。
 - 不自动 commit 或 push。
 - 所有新增代码、实验、文档应服务于项目计划书。
+- 必须遵守 `PROJECT_RULES.md` 中与本轮任务相关的科研工程、数据、benchmark、模型、统计、文档、日志和低 token 规则。
+- 新增说明类 Markdown 文档默认使用中文；代码标识、命令、配置键、字段名、路径、模型名和指标名保留英文。
 - 如涉及数据、模型或 benchmark，必须注意可复现性和数据泄漏风险。
 
 ## 预期输出
