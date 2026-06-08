@@ -1,0 +1,14 @@
+{
+  "current_round": 0,
+  "phase": "idle",
+  "last_prompt": null,
+  "last_result": null,
+  "last_commit": null,
+  "auto_next": false,
+  "auto_execute_prompt": false,
+  "auto_commit": false,
+  "auto_push": false,
+  "open_issues": [
+    "尚未开始正式科研推进轮次。"
+  ]
+}

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Research Project Coding Copilot"
+  short_description: "Human-controlled research coding workflow"
+  default_prompt: "Use $research-project-coding-copilot to initialize an interactive research project workflow from my project_plan.md."
+
+policy:
+  allow_implicit_invocation: true

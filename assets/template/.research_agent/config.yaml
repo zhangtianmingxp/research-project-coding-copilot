@@ -1,0 +1,12 @@
+auto_next: false
+auto_execute_prompt: false
+auto_commit: false
+auto_push: false
+prompt_dir: ans_qes
+prompt_prefix: prompt
+result_prefix: result
+default_language: zh-CN
+require_user_confirmation:
+  before_execute: true
+  before_commit: true
+  before_push: true
