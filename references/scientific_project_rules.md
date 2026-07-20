@@ -63,7 +63,7 @@ All code, experiments, documentation, and results should support:
 
 ## Results And Paper Readiness
 
-- Every figure, table, and reported number should be traceable to data, code, config, output file, and commit.
+- Every figure, table, and reported number should be traceable to data, code, config, output file, and repository revision.
 - Plotting scripts and result-generation scripts should be reproducible.
 - Important design decisions should be written into docs, not left only in chat history.
 - README files should help new contributors understand project goals, data, environment setup, minimal pipeline, reproduction, and extension.
@@ -87,6 +87,8 @@ Use English only when the user explicitly requests it, when a target journal/col
 - Long-running commands must show progress or logging and should support `--log-level`.
 
 ## Version Control
+
+The skill does not perform Git writes. After each reviewed round, recommend that the user manually commit and push the round to GitHub to preserve the research history.
 
 - Do not commit large raw data, processed matrices, model checkpoints, large figures, caches, or generated logs unless the project explicitly allows it.
 - Commits should have clear single-topic intent.

@@ -12,23 +12,21 @@ AI 的职责是：
 - 在用户要求时生成 `ans_qes/promptn.md`。
 - 在用户输入“执行当前轮”或指定某个 prompt 后执行该轮。
 - 执行后生成 `ans_qes/resultn.md`。
-- 在用户要求 commit message 时给出建议，在用户输入“提交当前轮”时执行 Git commit。
 - 每个阶段完成后停止，等待用户下一条明确指令。
 
 AI 不得：
 
 - 自动生成下一轮 prompt。
 - 自动执行刚生成的 prompt。
-- 自动 commit。
-- 自动 push。
+- 执行 `git add`、`git commit` 或 `git push`。
 - 调用远程 LLM API。
 - 在用户未确认时覆盖已有 `resultn.md`。
 
-例外：如果用户明确要求“继续 N 轮”或“从当前 result 继续执行 N 轮”，允许进入受限连续推进模式。该模式最多执行用户指定的 N 轮，不能无限循环，不能自动 push，遇到测试失败、不确定下一步、大文件/密钥风险、数据泄漏风险或需要破坏性操作时必须停止。
+例外：如果用户明确要求“继续 N 轮”或“从当前 result 继续执行 N 轮”，允许进入受限连续推进模式。该模式最多执行用户指定的 N 轮，不能无限循环，遇到测试失败、不确定下一步、大文件/密钥风险、数据泄漏风险或需要破坏性操作时必须停止。
 
 ### 1.1 短指令协议
 
-用户不需要在每次操作后重复说明“不要执行”“不要生成下一轮”“不要 commit”或“不要 push”。以下短指令具有固定边界：
+用户不需要在每次操作后重复说明“不要执行”或“不要生成下一轮”。以下短指令具有固定边界：
 
 | 指令 | 固定行为 |
 | --- | --- |
@@ -38,10 +36,7 @@ AI 不得：
 | `状态` | 报告当前轮次、阶段和下一步 |
 | `生成下一轮` / `下一轮` | 只生成下一轮 prompt，然后停止 |
 | `执行当前轮` | 执行当前 prompt，验证并生成同轮 result，然后停止 |
-| `提交当前轮` | 生成提交信息并 commit，然后停止，不 push |
-| `推送` | push 已提交内容 |
-| `继续 N 轮` | 最多连续生成并执行 N 轮，默认不 commit、不 push |
-| `继续 N 轮并逐轮提交` | 最多连续执行 N 轮并逐轮 commit，不 push |
+| `继续 N 轮` | 最多连续生成并执行 N 轮，然后停止 |
 
 短指令本身就是对应动作的用户授权，不得要求用户重复确认同一个动作。只有目标不明确、缺少必要信息或触发工具权限边界时才询问。
 
@@ -55,8 +50,6 @@ prompt_drafted
 prompt_approved
 executed
 result_reviewed
-commit_suggested
-committed
 ```
 
 允许的转换：
@@ -68,12 +61,10 @@ prompt_drafted -> prompt_approved
 prompt_approved -> executed
 executed -> executed
 executed -> result_reviewed
-result_reviewed -> commit_suggested
-commit_suggested -> committed
-committed -> idle
+result_reviewed -> prompt_drafted
 ```
 
-禁止自动执行 `committed -> prompt_drafted`。必须由用户明确要求生成下一轮 prompt。
+禁止自动执行 `result_reviewed -> prompt_drafted`。必须由用户明确要求生成下一轮 prompt。
 
 如果用户明确要求受限连续推进 N 轮，可以在同一轮用户指令下重复执行：
 
@@ -115,17 +106,11 @@ prompt_drafted -> prompt_approved -> executed
 
 如果 `resultn.md` 已存在，除非用户明确要求覆盖或更新，否则不得直接覆盖。
 
-## 5. 生成 commit message 的规则
+## 5. GitHub 历史记录建议
 
-触发条件：用户要求 commit message，或输入“提交当前轮”。
+skill 不执行 `git add`、`git commit` 或 `git push`，Git 操作也不是本工作流的阶段。
 
-操作要求：
-
-1. 检查 `git status`。
-2. 读取本轮 `promptn.md` 和 `resultn.md`。
-3. 建议格式为 `pN: 简短中文或英文摘要`。
-4. 用户输入“提交当前轮”或其他明确提交指令时，已经构成执行 `git commit` 的确认，不再重复询问。
-5. commit 后停止，不得 push，除非用户明确要求。
+每轮 `resultn.md` 生成并经用户审查后，应提醒用户自行将本轮代码、prompt、result 和必要文档提交并推送到 GitHub，再开始下一轮。该建议用于保存科研工作线路，但是否以及如何执行完全由用户决定。
 
 ## 5.1 受限连续推进 N 轮
 
@@ -141,10 +126,9 @@ prompt_drafted -> prompt_approved -> executed
    - 测试或检查失败且不能局部修复；
    - 下一步科研或工程判断不确定；
    - 出现大文件、模型权重、密钥、数据泄漏或 benchmark 不公平风险；
-   - 需要 push、外部凭据或破坏性操作；
+   - 需要外部凭据或破坏性操作；
    - 需要读取过宽上下文才能继续。
-6. 除非用户明确要求自动 commit，否则只给 commit 建议。
-7. 不得自动 push。
+6. 不执行任何 Git 写操作；完成后提醒用户自行同步 GitHub。
 
 ## 6. 科研项目质量原则
 

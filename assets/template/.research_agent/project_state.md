@@ -6,7 +6,6 @@
 - phase: idle
 - last_prompt: null
 - last_result: null
-- last_commit: null
 - auto_next: false
 
 ## Open Issues

@@ -2,7 +2,7 @@
 """Action CLI for the research-project-coding-copilot skill.
 
 This script operates on a target research repository. It never calls model
-APIs, never executes prompt tasks, never commits, and never pushes.
+APIs, never executes prompt tasks, and never performs Git write operations.
 """
 
 from __future__ import annotations
@@ -138,6 +138,8 @@ def load_progress(root: Path) -> dict:
 
 
 def save_progress(root: Path, progress: dict) -> None:
+    for key in ("last_commit", "auto_commit", "auto_push"):
+        progress.pop(key, None)
     progress_path(root).parent.mkdir(parents=True, exist_ok=True)
     progress_path(root).write_text(
         json.dumps(progress, ensure_ascii=False, indent=2) + "\n",
@@ -303,11 +305,8 @@ def inferred_progress(root: Path) -> dict:
         "phase": phase,
         "last_prompt": rel(latest_prompt, root) if latest_prompt else None,
         "last_result": rel(latest_result, root) if latest_result else None,
-        "last_commit": None,
         "auto_next": False,
         "auto_execute_prompt": False,
-        "auto_commit": False,
-        "auto_push": False,
         "open_issues": round_warnings(root),
     }
 
@@ -322,7 +321,6 @@ def effective_progress(root: Path) -> dict:
         return saved
 
     reconciled = {**saved, **inferred}
-    reconciled["last_commit"] = saved.get("last_commit")
     reconciled["open_issues"] = list(
         dict.fromkeys(
             [
@@ -345,7 +343,6 @@ def write_state_snapshot(root: Path, progress: dict) -> None:
         f"- phase: {progress.get('phase', 'idle')}\n"
         f"- last_prompt: {progress.get('last_prompt')}\n"
         f"- last_result: {progress.get('last_result')}\n"
-        f"- last_commit: {progress.get('last_commit')}\n"
         "- auto_next: false\n\n"
         "## Open Issues\n\n"
         f"{issue_lines}\n"
@@ -369,7 +366,6 @@ def required_paths(root: Path) -> list[Path]:
         state_path(root),
         agent_dir(root) / "templates" / "prompt_template.md",
         agent_dir(root) / "templates" / "result_template.md",
-        agent_dir(root) / "templates" / "commit_template.md",
         root / "scripts" / "research_flow.py",
     ]
     paths.append(project_rules_path(root) or root / "PROJECT_RULES.md")
@@ -454,8 +450,6 @@ def update_state_for_prompt(root: Path, round_id: int, prompt_path: Path) -> Non
             "last_prompt": rel(prompt_path, root),
             "auto_next": False,
             "auto_execute_prompt": False,
-            "auto_commit": False,
-            "auto_push": False,
             "open_issues": [
                 "prompt 已生成，等待用户审查；不得自动执行。"
             ],
@@ -470,7 +464,6 @@ def update_state_for_prompt(root: Path, round_id: int, prompt_path: Path) -> Non
         "- phase: prompt_drafted\n"
         f"- last_prompt: {rel(prompt_path, root)}\n"
         f"- last_result: {progress.get('last_result')}\n"
-        f"- last_commit: {progress.get('last_commit')}\n"
         "- auto_next: false\n\n"
         "## Open Issues\n\n"
         "- prompt 已生成，等待用户审查；不得自动执行。\n\n"
@@ -491,11 +484,9 @@ def update_state_for_result(root: Path, round_id: int, result_path: Path) -> Non
             "last_result": rel(result_path, root),
             "auto_next": False,
             "auto_execute_prompt": False,
-            "auto_commit": False,
-            "auto_push": False,
             "open_issues": [
                 "result 已生成，等待用户审查。",
-                "commit 前必须等待用户明确确认。"
+                "建议审查通过后由用户自行提交并推送到 GitHub，保存本轮研究轨迹。"
             ],
         }
     )
@@ -513,11 +504,10 @@ def update_state_for_result(root: Path, round_id: int, result_path: Path) -> Non
         "- phase: executed\n"
         f"- last_prompt: {progress.get('last_prompt')}\n"
         f"- last_result: {rel(result_path, root)}\n"
-        f"- last_commit: {progress.get('last_commit')}\n"
         "- auto_next: false\n\n"
         "## Open Issues\n\n"
         "- result 已生成，等待用户审查。\n"
-        "- commit 前必须等待用户明确确认。\n\n"
+        "- 建议审查通过后由用户自行提交并推送到 GitHub，保存本轮研究轨迹。\n\n"
         "## Notes\n\n"
         "- 不得自动生成下一轮 prompt。\n"
         "- 用户明确要求生成下一轮 prompt 后，才允许继续。\n"
@@ -597,7 +587,7 @@ def render_prompt(root: Path, round_id: int, title: str, focus: str | None) -> s
 6. 新增说明类 Markdown 文档默认使用中文；代码标识、命令、配置键、字段名、路径、模型名和指标名保留英文。
 7. 不调用远程 LLM API。
 8. 不自动生成下一轮 prompt，除非用户明确要求受限连续推进 N 轮。
-9. 不自动 commit 或 push。
+9. 本轮不执行 `git add`、`git commit` 或 `git push`；GitHub 同步由用户自行完成。
 
 ## 预期输出
 
@@ -796,21 +786,6 @@ def cmd_context_summary(args: argparse.Namespace) -> int:
     return 0
 
 
-def summarize_prompt(root: Path, round_id: int) -> str:
-    prompt_path = find_round_file(root, PROMPT_RE, round_id)
-    if prompt_path is None:
-        return f"round {round_id}"
-    text = prompt_path.read_text(encoding="utf-8")
-    match = re.search(r"##\s+任务标题\s*\n+(.+)", text)
-    if match:
-        return re.sub(r"\s+", " ", match.group(1)).strip()[:60]
-    for line in text.splitlines():
-        stripped = line.strip()
-        if stripped and not stripped.startswith("#"):
-            return stripped[:60]
-    return f"round {round_id}"
-
-
 def cmd_init(args: argparse.Namespace) -> int:
     root = target_root(args)
     written: list[Path] = []
@@ -910,7 +885,6 @@ def cmd_status(args: argparse.Namespace) -> int:
     print(f"phase: {progress.get('phase', 'idle')}")
     print(f"last_prompt: {progress.get('last_prompt')}")
     print(f"last_result: {progress.get('last_result')}")
-    print(f"last_commit: {progress.get('last_commit')}")
     print(f"auto_next: {progress.get('auto_next', False)}")
     for issue in progress.get("open_issues", []):
         print(f"open_issue: {issue}")
@@ -930,7 +904,7 @@ def cmd_check(args: argparse.Namespace) -> int:
             problems.append(f"missing required path: {rel(path, root)}")
 
     progress = load_progress(root)
-    for key in ("auto_next", "auto_execute_prompt", "auto_commit", "auto_push"):
+    for key in ("auto_next", "auto_execute_prompt"):
         if progress.get(key) is not False:
             problems.append(f"progress.json must set {key}: false")
 
@@ -1201,26 +1175,6 @@ def cmd_checkpoint(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_suggest_commit(args: argparse.Namespace) -> int:
-    root = target_root(args)
-    round_id = args.round
-    summary = args.summary or summarize_prompt(root, round_id)
-    summary = re.sub(r"\s+", " ", summary).strip()
-    if len(summary) > 72:
-        summary = summary[:72].rstrip()
-    print(f"p{round_id}: {summary}")
-
-    changed = git_changed_files(root)
-    if changed:
-        print("changed_files:")
-        for line in changed[:30]:
-            print(f"- {line}")
-        if len(changed) > 30:
-            print(f"- ... {len(changed) - 30} more")
-    print("suggestion only; commit requires explicit user confirmation")
-    return 0
-
-
 def cmd_continue_plan(args: argparse.Namespace) -> int:
     root = target_root(args)
     if args.rounds < 1:
@@ -1261,11 +1215,9 @@ def cmd_continue_plan(args: argparse.Namespace) -> int:
             "continue_end_round": end,
             "auto_next": False,
             "auto_execute_prompt": False,
-            "auto_commit": False,
-            "auto_push": False,
             "open_issues": [
                 f"用户请求受限连续推进 {args.rounds} 轮：round {start} 到 {end}。",
-                "每轮仍必须生成 prompt/result；不得无限循环；不得自动 push。",
+                "每轮仍必须生成 prompt/result；不得无限循环；GitHub 同步由用户自行完成。",
             ],
         }
     )
@@ -1280,7 +1232,7 @@ def cmd_continue_plan(args: argparse.Namespace) -> int:
     print(f"rounds_requested: {args.rounds}")
     print("mode: bounded_continue")
     print(f"state_written: {not args.dry_run}")
-    print("rule: stop after requested rounds, on test failure, on uncertainty, on large-file/secret risk, or before push")
+    print("rule: stop after requested rounds, on test failure, on uncertainty, or on large-file/secret risk")
     return 0
 
 
@@ -1371,12 +1323,6 @@ def build_parser() -> argparse.ArgumentParser:
     checkpoint.add_argument("--end-round", type=int, default=None, help="last included round")
     checkpoint.add_argument("--force", action="store_true", help="overwrite existing checkpoint")
     checkpoint.set_defaults(func=cmd_checkpoint)
-
-    commit = subparsers.add_parser("suggest-commit", help="suggest a commit message")
-    add_target(commit)
-    commit.add_argument("--round", type=int, required=True, help="round number")
-    commit.add_argument("--summary", default=None, help="explicit summary")
-    commit.set_defaults(func=cmd_suggest_commit)
 
     cont = subparsers.add_parser("continue-plan", help="plan a bounded N-round continuation")
     add_target(cont)

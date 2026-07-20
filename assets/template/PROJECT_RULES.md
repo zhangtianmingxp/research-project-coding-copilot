@@ -143,7 +143,7 @@ project/
 
 每次实验至少记录：
 
-- git commit；
+- code version / repository revision；
 - command；
 - config file；
 - package versions；
@@ -407,6 +407,8 @@ Expected processed expression matrix at <path>. Please run `prepare_expression_m
 - 日志不应泄露敏感信息，也不应刷屏。
 
 ## 11. 版本管理规则
+
+版本管理操作由用户负责。Research Project Coding Copilot 不执行 `git add`、`git commit` 或 `git push`。每轮 result 审查通过后，建议用户自行提交并推送一次，将本轮代码、prompt、result 和必要文档保存在 GitHub 历史中。
 
 ### 11.1 不提交大数据文件
 

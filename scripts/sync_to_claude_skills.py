@@ -11,6 +11,10 @@ from pathlib import Path
 
 SKILL_NAME = "research-project-coding-copilot"
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
+OBSOLETE_FILES = (
+    "assets/template/.research_agent/templates/commit_template.md",
+    "references/original_bootstrap_prompt.md",
+)
 
 
 def default_claude_home() -> Path:
@@ -51,6 +55,16 @@ def sync_tree(source: Path, target: Path) -> list[Path]:
     return written
 
 
+def remove_obsolete_files(target: Path) -> list[Path]:
+    removed: list[Path] = []
+    for relative in OBSOLETE_FILES:
+        path = target / relative
+        if path.is_file():
+            path.unlink()
+            removed.append(path)
+    return removed
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Sync skill source to Claude Code skills directory.")
     parser.add_argument(
@@ -67,10 +81,12 @@ def main() -> int:
     )
     target.mkdir(parents=True, exist_ok=True)
     written = sync_tree(SOURCE_ROOT, target)
+    removed = remove_obsolete_files(target)
 
     print(f"source: {SOURCE_ROOT}")
     print(f"target: {target}")
     print(f"written: {len(written)}")
+    print(f"removed_obsolete: {len(removed)}")
     print("done")
     return 0
 

@@ -1,6 +1,6 @@
 ---
 name: research-project-coding-copilot
-description: "Use when the user wants an interactive Codex or Claude Code workflow for long-running research coding projects: initialize a project template from a markdown research plan, generate promptn.md files, wait for user approval, execute approved prompts, write resultn.md files, suggest Git commit messages, and stop between rounds. This skill is for human-controlled research project progression, not a fully autonomous agent."
+description: "Use when the user wants an interactive Codex or Claude Code workflow for long-running research coding projects: initialize a project template from a markdown research plan, generate promptn.md files, wait for user approval, execute approved prompts, write resultn.md files, and stop between rounds. This skill is for human-controlled research project progression, not a fully autonomous agent."
 metadata:
   short-description: Interactive research coding workflow
 ---
@@ -9,21 +9,21 @@ metadata:
 
 This skill turns a repository into a human-controlled research project workflow for Codex / Claude Code. It provides a reusable action CLI plus an installable repository template.
 
-It is not an autonomous agent and must not call remote LLM APIs, auto-execute newly generated prompts, auto-generate the next round, auto-commit, or auto-push.
+It is not an autonomous agent and must not call remote LLM APIs, auto-execute newly generated prompts, auto-generate the next round, or perform Git write operations.
 
 ## Core Rule
 
 Every formal round is split into explicit user-controlled phases:
 
 ```text
-project_plan.md -> ans_qes/promptn.md -> user review -> execute -> ans_qes/resultn.md -> user review -> commit suggestion/commit -> stop
+project_plan.md -> ans_qes/promptn.md -> user review -> execute -> ans_qes/resultn.md -> user review -> stop
 ```
 
 Never advance to the next phase without a clear user instruction.
 
 ## Short Command Contract
 
-The user does not need to restate safety clauses such as "do not execute", "do not create the next prompt", "do not commit", or "do not push". Treat these concise Chinese commands as complete instructions with built-in phase boundaries:
+The user does not need to restate safety clauses such as "do not execute" or "do not create the next prompt". Treat these concise Chinese commands as complete instructions with built-in phase boundaries:
 
 | User command | Required behavior |
 | --- | --- |
@@ -35,14 +35,11 @@ The user does not need to restate safety clauses such as "do not execute", "do n
 | `修改当前 prompt：...` | Revise only the current prompt and stop |
 | `执行当前轮` | Execute the latest current prompt, validate work, write the matching result, and stop |
 | `修改当前 result：...` | Address the feedback, revalidate, update the current result, and stop |
-| `提交当前轮` | Generate the round commit message and commit relevant changes; do not push |
-| `推送` | Push already committed changes to the configured current branch |
-| `继续 N 轮` | Generate and execute at most N rounds; do not commit or push by default |
-| `继续 N 轮并逐轮提交` | Generate, execute, validate, and commit each of at most N rounds; do not push |
+| `继续 N 轮` | Generate and execute at most N rounds, then stop |
 
 The short command itself is the user's authorization for the action named in that row. Do not ask the user to repeat the same authorization. Ask only when required information is missing, the target is ambiguous, or an approval boundary outside this workflow applies.
 
-For `执行当前轮`, resolve the highest prompt round without a matching completed result unless the user names a round. For `提交当前轮`, use the highest completed result round unless the user names a round.
+For `执行当前轮`, resolve the highest prompt round without a matching completed result unless the user names a round.
 
 ## Action CLI
 
@@ -61,11 +58,10 @@ python scripts/research_copilot.py prompt-check --target . --round N
 python scripts/research_copilot.py result-check --target . --round N --mark-executed
 python scripts/research_copilot.py preflight --target . --round N
 python scripts/research_copilot.py checkpoint --target . --start-round A --end-round B
-python scripts/research_copilot.py suggest-commit --target . --round N
 python scripts/research_copilot.py continue-plan --target . --rounds N
 ```
 
-The CLI is allowed to install template files, inspect state, create prompt drafts, validate result files, update workflow state, and suggest commit messages. It must not execute prompt tasks, commit, push, or call model APIs.
+The CLI is allowed to install template files, inspect state, create prompt drafts, validate result files, and update workflow state. It must not execute prompt tasks, call model APIs, or run `git add`, `git commit`, or `git push`.
 
 On Windows, use `--title-file PATH` with a UTF-8 one-line file when a non-ASCII `--title` would be corrupted by shell argument encoding.
 
@@ -84,7 +80,7 @@ Use `max(existing_rounds) + 1` for the next round. Report historical gaps but do
 
 Default to low-context mode in every target repository, especially mature research projects.
 
-Before generating prompts, executing tasks, analyzing results, or suggesting commits:
+Before generating prompts, executing tasks, or analyzing results:
 
 1. Run:
 
@@ -220,9 +216,9 @@ python scripts/research_copilot.py result-check --target . --round n --mark-exec
    - tests/checks fail and the fix is not obvious;
    - the next step is scientifically ambiguous;
    - a large data/model/checkpoint/secret-risk change appears;
-   - the task would require push, external credentials, or destructive changes;
+   - the task would require external credentials or destructive changes;
    - context needed becomes too broad for low-context mode.
-5. Do not push. Commit during bounded continuation only if the user explicitly asked for auto-commit; otherwise suggest commit messages and stop with a summary.
+5. Do not run Git write operations. Remind the user that each reviewed round can be manually committed and pushed to GitHub to preserve history.
 6. Never continue beyond N rounds without a new user instruction.
 
 ## When History Becomes Large
@@ -235,24 +231,15 @@ python scripts/research_copilot.py checkpoint --target . --start-round A --end-r
 
 Synthesize it into a compact Chinese summary containing stable conclusions, negative results, interpretation limits, key artifacts, decisions, claim-to-evidence links, and unresolved questions. Prefer this checkpoint plus the latest 1-3 results over rereading the full history.
 
-## When Suggesting Or Making Commits
+## GitHub History Recommendation
 
-Use this only when the user explicitly asks for a commit message or commit.
+This skill does not run `git add`, `git commit`, or `git push`, and Git operations are not workflow phases.
 
-1. Inspect `git status` and the current round's prompt/result.
-2. Suggest a message with:
-
-```bash
-python scripts/research_copilot.py suggest-commit --target . --round N
-```
-
-3. `提交当前轮` or another explicit commit instruction is the required confirmation; execute the commit without asking for a duplicate confirmation.
-4. Do not push unless the user explicitly asks.
-5. Stop after commit.
+After a prompt has been executed, its `resultn.md` has been generated, and the user has reviewed the round, recommend that the user manually commit and push that round's code, prompt, result, and necessary documentation to GitHub before starting the next round. This preserves the research path without making the skill responsible for repository writes.
 
 ## References
 
-For the full protocol, read `references/workflow_protocol.md` when the task involves prompt/result lifecycle details, state updates, or commit behavior.
+For the full protocol, read `references/workflow_protocol.md` when the task involves prompt/result lifecycle details or state updates.
 
 For context-budget behavior in large projects, read `references/context_hygiene.md`.
 

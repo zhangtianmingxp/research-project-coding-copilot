@@ -36,7 +36,7 @@ Supported commands:
 
 - `init --target PATH`: copy `assets/template/` into a target repository without overwriting existing files unless `--force` is set.
 - `adopt --target PATH --dry-run`: detect an existing project's plan, rules, docs, environment records, naming style, and current round; remove `--dry-run` to install workflow state without replacing project-owned files. Repeated adoption preserves the profile/progress unless `--refresh-state` is explicit.
-- `status --target PATH`: print current round, phase, latest prompt/result/commit, and open issues.
+- `status --target PATH`: print current round, phase, latest prompt/result, and open issues.
 - `context-summary --target PATH`: print a bounded repository summary, file counts, large files, top directories, project plan headings, recent round files, and Git status without loading large contents.
 - `check --target PATH`: check required template files, prompt/result numbering, and safety flags.
 - `plan-check --target PATH`: warn when `project_plan.md` still looks like an unfilled template.
@@ -46,10 +46,9 @@ Supported commands:
 - `result-check --target PATH --round N --mark-executed`: validate `resultn.md` sections and update state to `executed`.
 - `preflight --target PATH --round N`: check plan/rules, round pairing, Git state, sensitive-looking paths, large tracked files, and runtime documentation.
 - `checkpoint --target PATH --start-round A --end-round B`: create a compact workflow-checkpoint scaffold for long project history.
-- `suggest-commit --target PATH --round N`: print a `pN: ...` commit message suggestion and changed files.
 - `continue-plan --target PATH --rounds N`: check numbering and record a bounded continuation request for the next N rounds.
 
-The CLI is deliberately bounded. It does not execute prompt tasks, call model APIs, commit, push, or generate the next round automatically.
+The CLI is deliberately bounded. It does not execute prompt tasks, call model APIs, perform Git writes, or generate the next round automatically.
 
 Round filenames may include task titles, such as `prompt12_任务短名.md`. The next round is the maximum existing round plus one; historical gaps are warnings, not slots to refill.
 
@@ -63,10 +62,7 @@ The user can control the workflow with concise commands. Guardrails are implicit
 - `状态`: report current state and next action.
 - `生成下一轮` or `下一轮`: generate the next prompt only.
 - `执行当前轮`: execute the current prompt and write the matching result only.
-- `提交当前轮`: commit the current completed round without pushing.
-- `推送`: push committed changes.
-- `继续 N 轮`: generate and execute at most N rounds without commits or push by default.
-- `继续 N 轮并逐轮提交`: run at most N rounds with per-round commits and no push.
+- `继续 N 轮`: generate and execute at most N rounds, then stop.
 
 The named short command is sufficient authorization for its named action. Do not ask for a duplicate confirmation.
 
@@ -108,23 +104,21 @@ Stop conditions:
 - N rounds completed.
 - test/check failure without an obvious local fix.
 - unclear scientific or engineering next step.
-- risk of data leakage, benchmark unfairness, secret exposure, large file commit, destructive change, or push.
+- risk of data leakage, benchmark unfairness, secret exposure, large files, or destructive change.
 - context needs become too broad.
 
-Unless the user explicitly requested auto-commit, bounded continuation should not commit; it should provide commit suggestions.
+The bounded loop does not perform Git writes. At completion, remind the user that reviewed rounds can be manually committed and pushed to GitHub.
 
 ## State Files
 
 `.research_agent/project_state.md` is the human-readable state record.
 
-`.research_agent/progress.json` is the machine-readable state record. These boolean values must remain false unless the user explicitly changes the protocol:
+`.research_agent/progress.json` is the machine-readable state record. These boolean values remain false:
 
 ```json
 {
   "auto_next": false,
-  "auto_execute_prompt": false,
-  "auto_commit": false,
-  "auto_push": false
+  "auto_execute_prompt": false
 }
 ```
 
@@ -136,11 +130,9 @@ prompt_drafted
 prompt_approved
 executed
 result_reviewed
-commit_suggested
-committed
 ```
 
-Do not move from `committed` to a new prompt automatically.
+Do not move from `result_reviewed` to a new prompt automatically.
 
 ## Prompt Generation
 
@@ -172,7 +164,6 @@ Execute only when the user explicitly says to execute a specific prompt. The res
 - verification
 - risks and limitations
 - whether relevant `PROJECT_RULES.md` constraints were satisfied
-- commit suggestion
 - next-step ideas without starting the next prompt
 
 After writing the result, update state and stop.
@@ -204,15 +195,11 @@ For long projects, create checkpoints every 10-20 substantial rounds. Each check
 
 Maintain a `doc/README.md` or `docs/README.md` with recommended reading order and current conclusion entry points.
 
-## Commit Behavior
+## GitHub History Recommendation
 
-Commit messages should normally be:
+The skill never runs `git add`, `git commit`, or `git push`. Git operations are not workflow phases.
 
-```text
-pN: short summary
-```
-
-Never commit merely because a result was generated. Wait for user confirmation. Never push unless the user explicitly asks.
+After each `resultn.md` is generated and reviewed, recommend that the user manually commit and push that round's code, prompt, result, and necessary documentation to GitHub before starting the next round. This keeps the research path in version history while leaving repository writes under direct user control.
 
 ## Context Hygiene
 

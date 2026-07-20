@@ -5,7 +5,7 @@
 它把长期科研项目组织为可检查、可追踪的工作链：
 
 ```text
-project plan -> promptN -> 执行 -> resultN -> commit -> 下一轮
+project plan -> promptN -> 执行 -> resultN -> 审查 -> 下一轮
 ```
 
 ## 最短用法
@@ -26,11 +26,10 @@ $research-project-coding-copilot 生成下一轮
 
 ```text
 执行当前轮
-提交当前轮
 生成下一轮
 ```
 
-不需要反复补充“不要执行”“不要生成下一轮”“不要 commit”或“不要 push”。这些阶段边界是 skill 的内置规则。
+不需要反复补充“不要执行”或“不要生成下一轮”。这些阶段边界是 skill 的内置规则。
 
 ## 短指令
 
@@ -44,10 +43,7 @@ $research-project-coding-copilot 生成下一轮
 | `修改当前 prompt：...` | 按反馈修改当前 prompt，不执行 |
 | `执行当前轮` | 执行当前 prompt，测试并生成同轮 `resultN` |
 | `修改当前 result：...` | 根据反馈补充工作并更新当前 result |
-| `提交当前轮` | 生成 `pN: ...` 提交信息并执行 commit，不 push |
-| `推送` | 将已经提交的内容 push 到当前远程分支 |
-| `继续 N 轮` | 连续生成并执行 N 轮，完成后停止，默认不 commit、不 push |
-| `继续 N 轮并逐轮提交` | 连续执行 N 轮并逐轮 commit，完成后停止，不 push |
+| `继续 N 轮` | 连续生成并执行 N 轮，完成后停止 |
 
 新会话建议在第一条指令前写一次 `$research-project-coding-copilot`。skill 被调用后，当前会话可以直接使用表中的短指令。
 
@@ -58,13 +54,18 @@ $research-project-coding-copilot 生成下一轮
 ```text
 生成下一轮 -> 等待 prompt 审查
 执行当前轮 -> 等待 result 审查
-提交当前轮 -> commit 后停止
 生成下一轮 -> 开始下一轮
 ```
 
 `继续 N 轮` 是唯一的多轮模式。它最多执行指定轮数，并在测试失败、科研判断不明确、数据泄漏风险、敏感文件风险、破坏性操作或外部凭据缺失时提前停止。
 
-任何模式都不会自行无限循环。只有明确输入 `推送` 或在指令中写明“并推送”才会 push。
+任何模式都不会自行无限循环。skill 不执行 `git add`、`git commit` 或 `git push`。
+
+## 推荐的 GitHub 记录习惯
+
+每轮 prompt 执行完成、`resultN` 生成并审查通过后，建议用户自行将本轮代码、prompt、result 和必要文档提交并推送到 GitHub 一次，再开始下一轮。这样可以把每轮科研问题、代码变化、验证结果和结论保存在同一条版本历史中。
+
+Git 操作完全由用户自行完成。skill 只会在状态或结果中提醒这项建议，不生成提交环节，也不运行任何 Git 写命令。
 
 ## 让 AI 帮你安装
 
@@ -199,7 +200,7 @@ skill 默认要求：
 - 配置、数据、模型、评价和可解释性解耦；
 - pilot-first，昂贵任务先运行小规模验证；
 - 外部 API 结果缓存、成本记录和断点恢复；
-- 数据来源、配置、环境、随机种子和 Git commit 可追踪；
+- 数据来源、配置、环境、随机种子和代码版本可追踪；
 - benchmark 公平并检查数据泄漏；
 - 重要结论保留不确定性、负结果和解释边界；
 - 长任务有日志和进度反馈；
@@ -233,7 +234,6 @@ python scripts/research_copilot.py prompt-check --target . --round N
 python scripts/research_copilot.py result-check --target . --round N --mark-executed
 python scripts/research_copilot.py preflight --target . --round N
 python scripts/research_copilot.py checkpoint --target . --start-round A --end-round B
-python scripts/research_copilot.py suggest-commit --target . --round N
 python scripts/research_copilot.py continue-plan --target . --rounds N
 ```
 

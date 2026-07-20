@@ -11,11 +11,10 @@
 ```text
 生成下一轮
 执行当前轮
-提交当前轮
 生成下一轮
 ```
 
-不需要重复说明“不要执行”“不要生成下一轮”“不要 commit”或“不要 push”。skill 已经为每条指令规定了停止位置。
+不需要重复说明“不要执行”或“不要生成下一轮”。skill 已经为每条指令规定了停止位置。
 
 ## 常用指令
 
@@ -24,9 +23,10 @@
 | `状态` | 检查当前轮次和下一步 |
 | `生成下一轮` | 生成下一轮 prompt，然后等待审查 |
 | `执行当前轮` | 执行当前 prompt，验证并生成对应 result |
-| `提交当前轮` | commit 当前轮，不 push |
-| `继续 N 轮` | 连续生成并执行 N 轮，默认不 commit、不 push |
-| `继续 N 轮并逐轮提交` | 连续执行并逐轮 commit，不 push |
-| `推送` | push 已提交内容 |
+| `继续 N 轮` | 连续生成并执行 N 轮，然后停止 |
+
+## GitHub 记录建议
+
+每轮 result 生成并审查通过后，建议用户自行把本轮代码、prompt、result 和必要文档提交并推送到 GitHub 一次，再开始下一轮。skill 不执行 `git add`、`git commit` 或 `git push`。
 
 详细科研工程规则见 `PROJECT_RULES.md`，工作流状态见 `.research_agent/project_state.md`，每轮记录保存在 `ans_qes/`。
