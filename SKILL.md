@@ -29,6 +29,8 @@ The user does not need to restate safety clauses such as "do not execute" or "do
 | --- | --- |
 | `初始化` | Initialize a new repository template, then stop |
 | `接管项目` | Detect and adopt an existing repository while preserving project-owned files, then stop |
+| `生成项目计划书：...` | Draft or improve `project_plan.md` from the user's research idea |
+| `整理项目计划书：...` | Synthesize `project_plan.md` from an existing repository plus the user's interpretation |
 | `项目体检` | Run read-only context, structure, plan, and preflight checks |
 | `状态` | Report current round, phase, and next valid action |
 | `生成下一轮` or `下一轮` | Generate only the next prompt and stop for review |
@@ -122,7 +124,7 @@ python scripts/research_copilot.py init --target .
 ```
 
 2. If files already exist, do not overwrite unless the user explicitly requested it. Use `--force` only for explicit overwrite requests.
-3. Tell the user to fill in `project_plan.md` or replace it with their real research plan.
+3. Explain that `project_plan.md` is required before formal rounds. The user may edit it manually or ask `生成项目计划书：...` and provide their research idea, data, intended methods, constraints, and desired paper/software outcome.
 4. Stop after initialization. `初始化` alone does not include prompt generation.
 
 ## When Adopting An Existing Repository
@@ -147,6 +149,25 @@ python scripts/research_copilot.py check --target .
 python scripts/research_copilot.py plan-check --target .
 ```
 
+## When Creating Or Updating The Project Plan
+
+The project plan is the required source of truth for selecting future rounds. Initialization alone is not enough.
+
+For a new project when the user says `生成项目计划书：...`:
+
+1. Use the user's stated research question, available data, intended methods, constraints, desired outputs, and publication goal.
+2. Ask only for genuinely blocking information. Otherwise create a clearly labeled draft with explicit assumptions.
+3. Replace template placeholders with concrete content covering background, scientific questions, goals, data, task definition, methods, engineering structure, validation standards, first-stage objectives, and risks.
+4. Write explanatory Markdown in Chinese by default, then run `plan-check` and stop for user review.
+
+For an existing repository when the user says `整理项目计划书：...`:
+
+1. Run `context-summary`, then inspect bounded relevant excerpts from README files, docs, configs, source structure, checkpoints, and recent results.
+2. Combine repository evidence with the user's interpretation and intended direction.
+3. Clearly distinguish implemented work, validated results, user-supplied understanding, assumptions, and future plans. Do not infer unsupported scientific conclusions from filenames alone.
+4. Create or update the detected project plan without overwriting unrelated project-owned documentation.
+5. Run `plan-check` and stop for user review. Do not generate `prompt1` or the next prompt in the same action unless the user explicitly requested both.
+
 ## When Generating `promptn.md`
 
 Use this when the user asks to generate a prompt, next prompt, `prompt1.md`, `prompt2.md`, or a task prompt from `project_plan.md`.
@@ -159,6 +180,8 @@ python scripts/research_copilot.py check --target .
 python scripts/research_copilot.py next-id --target .
 python scripts/research_copilot.py preflight --target .
 ```
+
+If `plan-check` reports missing content, template placeholders, or an obviously underspecified plan, stop and direct the user to write the plan or use `生成项目计划书：...` / `整理项目计划书：...`. Do not draft a formal prompt unless the user explicitly chooses the exceptional `--allow-incomplete-plan` override.
 
 2. Read `.research_agent/AGENTS.md`, relevant sections of `PROJECT_RULES.md`, `project_plan.md`, `.research_agent/project_state.md`, and recent relevant `ans_qes/result*.md` files only as needed.
 3. Create or scaffold the prompt with:

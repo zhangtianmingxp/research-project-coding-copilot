@@ -58,6 +58,8 @@ The user can control the workflow with concise commands. Guardrails are implicit
 
 - `初始化`: initialize only, then stop.
 - `接管项目`: adopt an existing project while preserving its files, then stop.
+- `生成项目计划书：...`: draft or improve a project plan from the user's research idea.
+- `整理项目计划书：...`: synthesize a project plan from an existing repository and the user's interpretation.
 - `项目体检`: run read-only readiness checks.
 - `状态`: report current state and next action.
 - `生成下一轮` or `下一轮`: generate the next prompt only.
@@ -78,6 +80,16 @@ Do not force mature repositories into the default template names. Detect and rec
 - titled or plain prompt/result naming.
 
 Preserve existing rules and plans. Install only missing workflow-control files.
+
+## Project Plan Prerequisite
+
+A reviewed project plan is required before formal prompt rounds. Initialization only creates the template.
+
+For a new project, the user may write `project_plan.md` directly or ask the skill to generate it from their research question, available data, intended methods, constraints, and desired publication or software outcome.
+
+For an existing project, combine bounded evidence from code, README files, docs, configs, checkpoints, and recent results with the user's understanding. Clearly separate implemented work, validated results, user-provided interpretation, assumptions, and future plans.
+
+Run `plan-check` before prompt generation. If placeholders or material omissions remain, stop for plan review rather than generating a formal prompt. The CLI permits an explicit `--allow-incomplete-plan` override only for exceptional user-directed cases.
 
 ## Bounded Continuation
 

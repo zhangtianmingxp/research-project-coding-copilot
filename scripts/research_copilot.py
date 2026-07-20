@@ -945,6 +945,14 @@ def cmd_plan_check(args: argparse.Namespace) -> int:
 
 def cmd_draft_prompt(args: argparse.Namespace) -> int:
     root = target_root(args)
+    plan_ok, plan_warnings = plan_report(root)
+    if not plan_ok and not args.allow_incomplete_plan:
+        print("draft-prompt: failed")
+        print("- project plan is missing or incomplete; prepare and review project_plan.md first")
+        for warning in plan_warnings:
+            print(f"- {warning}")
+        print("- use --allow-incomplete-plan only for an explicit exceptional case")
+        return 1
     round_id = args.round or next_round_id(root)
     existing = find_round_file(root, PROMPT_RE, round_id)
     title = resolve_title_arg(args, root)
@@ -1293,6 +1301,11 @@ def build_parser() -> argparse.ArgumentParser:
     draft.add_argument("--focus", default=None, help="specific goal/focus text")
     draft.add_argument("--force", action="store_true", help="overwrite existing prompt")
     draft.add_argument("--plain-name", action="store_true", help="use promptN.md instead of promptN_title.md")
+    draft.add_argument(
+        "--allow-incomplete-plan",
+        action="store_true",
+        help="explicitly allow drafting when the project plan is incomplete",
+    )
     draft.set_defaults(func=cmd_draft_prompt)
 
     prompt_check = subparsers.add_parser("prompt-check", help="check prompt scope and required concepts")

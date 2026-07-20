@@ -14,6 +14,7 @@ AGENT_DIR = ROOT / ".research_agent"
 ANS_DIR = ROOT / "ans_qes"
 PROGRESS_PATH = AGENT_DIR / "progress.json"
 STATE_PATH = AGENT_DIR / "project_state.md"
+PLAN_PATH = ROOT / "project_plan.md"
 PROMPT_TEMPLATE = AGENT_DIR / "templates" / "prompt_template.md"
 
 
@@ -136,6 +137,18 @@ def render_template(path: Path, values: dict[str, str | int]) -> str:
     return text
 
 
+def plan_warnings() -> list[str]:
+    if not PLAN_PATH.exists():
+        return ["project_plan.md is missing"]
+    text = PLAN_PATH.read_text(encoding="utf-8")
+    warnings: list[str] = []
+    if len(text.strip()) < 800:
+        warnings.append("project_plan.md looks too short")
+    if any(token in text for token in ("请填写项目名称", "说明研究领域", "问题一", "请填写")):
+        warnings.append("project_plan.md still contains template placeholders")
+    return warnings
+
+
 def update_state_for_prompt(round_id: int, prompt_path: Path) -> None:
     progress = load_progress()
     progress.update(
@@ -167,6 +180,12 @@ def update_state_for_prompt(round_id: int, prompt_path: Path) -> None:
 
 
 def cmd_init_round(args: argparse.Namespace) -> int:
+    warnings = plan_warnings()
+    if warnings and not args.allow_incomplete_plan:
+        print("init-round: failed; prepare and review project_plan.md first")
+        for warning in warnings:
+            print(f"- {warning}")
+        return 1
     round_id = args.round if args.round is not None else next_id()
     title = args.title
     if args.title_file:
@@ -218,6 +237,7 @@ def build_parser() -> argparse.ArgumentParser:
     init_round.add_argument("--title", default="任务", help="prompt title; use --title-file for reliable non-ASCII text")
     init_round.add_argument("--title-file", default=None, help="UTF-8 file containing the prompt title")
     init_round.add_argument("--force", action="store_true", help="overwrite existing prompt")
+    init_round.add_argument("--allow-incomplete-plan", action="store_true", help="allow an explicit exceptional draft")
     init_round.set_defaults(func=cmd_init_round)
 
     return parser
