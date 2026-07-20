@@ -18,6 +18,8 @@ project_plan.md -> promptn.md -> resultn.md -> 检查/审查 -> commit 建议 ->
 - `promptn.md` / `resultn.md` 两阶段记录机制；
 - 低 token 上下文工作规则；
 - 状态检查、编号检查、prompt 草稿、result 校验、commit message 建议；
+- 已有科研项目的自动识别与接管；
+- prompt 范围检查、执行前 preflight 和历史 checkpoint；
 - 用户明确要求时的受限连续推进 N 轮。
 
 ## 它不是什么
@@ -111,6 +113,25 @@ tests/
 
 然后填写或替换 `project_plan.md`。
 
+## 接管已有科研项目
+
+如果项目已经有自己的计划书、规则、`ans_qes/` 历史和文档目录，先做只读预览：
+
+```bash
+python scripts/research_copilot.py adopt --target E:\path\to\project --dry-run
+```
+
+它会自动识别：
+
+- `project_plan.md`、`PROJECT_PLAN.md` 或 `PROJECT_PLAN*.md`；
+- `PROJECT_RULES.md` 和 context rules；
+- `doc/` 或 `docs/`；
+- runtime environment 文档；
+- `prompt12.md` 或 `prompt12_任务短名.md` 命名；
+- 当前最大轮次和下一轮编号。
+
+确认识别结果后，去掉 `--dry-run`。它只安装 `.research_agent` 状态/画像和本地 helper，不覆盖已有项目规则与计划书。重复接管默认保留已有画像和进度；只有明确需要按磁盘文件重建时才加 `--refresh-state`。
+
 ## 基本工作流
 
 生成第一轮 prompt，不执行：
@@ -168,16 +189,51 @@ skill 级 CLI：
 
 ```bash
 python scripts/research_copilot.py init --target .
+python scripts/research_copilot.py adopt --target . --dry-run
 python scripts/research_copilot.py status --target .
 python scripts/research_copilot.py context-summary --target .
 python scripts/research_copilot.py check --target .
 python scripts/research_copilot.py plan-check --target .
 python scripts/research_copilot.py next-id --target .
 python scripts/research_copilot.py draft-prompt --target . --title "..."
+python scripts/research_copilot.py prompt-check --target . --round N
 python scripts/research_copilot.py result-check --target . --round N --mark-executed
+python scripts/research_copilot.py preflight --target . --round N
+python scripts/research_copilot.py checkpoint --target . --start-round A --end-round B
 python scripts/research_copilot.py suggest-commit --target . --round N
 python scripts/research_copilot.py continue-plan --target . --rounds N
 ```
+
+Windows 终端传递中文标题出现乱码时，把标题写入 UTF-8 单行文件并使用 `--title-file title.txt`。生成的文件仍会采用 `promptN_中文短名.md`。
+
+轮次文件支持两种命名：
+
+```text
+prompt12.md
+prompt12_任务短名.md
+result12.md
+result12_任务短名.md
+```
+
+下一轮默认使用现有最大编号加一。历史编号缺口只报告，不自动回填。
+
+## 长期项目维护
+
+项目轮次较多后，建议每 10-20 个重要轮次生成一次 checkpoint：
+
+```bash
+python scripts/research_copilot.py checkpoint --target . --start-round 1 --end-round 20
+```
+
+checkpoint 应提炼稳定结论、负结果、解释边界、关键产物、重要决策、claim-to-evidence 映射和未解决问题。后续优先读取 checkpoint 与最近 1-3 个 result，避免重复加载完整历史。
+
+大规模实验、昂贵推理或外部 API 调用前，先运行：
+
+```bash
+python scripts/research_copilot.py preflight --target . --round N
+```
+
+并遵循 pilot-first、环境记录、API 缓存、断点恢复、敏感文件不读取等规则。
 
 安装到目标仓库后的本地辅助脚本：
 

@@ -18,8 +18,8 @@ PROMPT_TEMPLATE = AGENT_DIR / "templates" / "prompt_template.md"
 COMMIT_TEMPLATE = AGENT_DIR / "templates" / "commit_template.md"
 
 
-PROMPT_RE = re.compile(r"^prompt(\d+)\.md$")
-RESULT_RE = re.compile(r"^result(\d+)\.md$")
+PROMPT_RE = re.compile(r"^prompt(\d+)(?:_(.+))?\.md$", re.IGNORECASE)
+RESULT_RE = re.compile(r"^result(\d+)(?:_(.+))?\.md$", re.IGNORECASE)
 
 
 def load_progress() -> dict:
@@ -50,10 +50,7 @@ def next_id() -> int:
     prompts = numbered_files(PROMPT_RE)
     results = numbered_files(RESULT_RE)
     used = set(prompts) | set(results)
-    n = 1
-    while n in used:
-        n += 1
-    return n
+    return max(used, default=0) + 1
 
 
 def required_paths() -> list[Path]:
@@ -65,6 +62,7 @@ def required_paths() -> list[Path]:
         ANS_DIR / "README.md",
         AGENT_DIR / "AGENTS.md",
         AGENT_DIR / "config.yaml",
+        AGENT_DIR / "project_profile.json",
         STATE_PATH,
         PROGRESS_PATH,
         AGENT_DIR / "templates" / "prompt_template.md",
@@ -103,13 +101,6 @@ def check_pairs() -> list[str]:
     for n in sorted(results):
         if n not in prompts:
             problems.append(f"result{n}.md exists without prompt{n}.md")
-
-    prompt_numbers = sorted(prompts)
-    if prompt_numbers:
-        expected = list(range(1, max(prompt_numbers) + 1))
-        missing = sorted(set(expected) - set(prompt_numbers))
-        for n in missing:
-            problems.append(f"missing prompt{n}.md")
 
     return problems
 
@@ -181,7 +172,15 @@ def update_state_for_prompt(round_id: int, prompt_path: Path) -> None:
 
 def cmd_init_round(args: argparse.Namespace) -> int:
     round_id = args.round if args.round is not None else next_id()
-    prompt_path = ANS_DIR / f"prompt{round_id}.md"
+    title = args.title
+    if args.title_file:
+        title_path = Path(args.title_file)
+        if not title_path.is_absolute():
+            title_path = ROOT / title_path
+        title = title_path.read_text(encoding="utf-8").strip()
+    title_slug = re.sub(r'[<>:"/\\|?*]+', "_", title.strip())
+    title_slug = re.sub(r"\s+", "_", title_slug).strip("._")[:80] or "任务"
+    prompt_path = ANS_DIR / f"prompt{round_id}_{title_slug}.md"
 
     if prompt_path.exists() and not args.force:
         print(f"refusing to overwrite existing {prompt_path.relative_to(ROOT)}")
@@ -192,7 +191,8 @@ def cmd_init_round(args: argparse.Namespace) -> int:
         PROMPT_TEMPLATE,
         {
             "round": round_id,
-            "title": args.title,
+            "title": title,
+            "title_slug": title_slug,
         },
     )
     prompt_path.write_text(text, encoding="utf-8")
@@ -203,8 +203,8 @@ def cmd_init_round(args: argparse.Namespace) -> int:
 
 
 def summarize_prompt(round_id: int) -> str:
-    prompt_path = ANS_DIR / f"prompt{round_id}.md"
-    if not prompt_path.exists():
+    prompt_path = numbered_files(PROMPT_RE).get(round_id)
+    if prompt_path is None:
         return f"round {round_id}"
 
     for line in prompt_path.read_text(encoding="utf-8").splitlines():
@@ -247,7 +247,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     init_round = subparsers.add_parser("init-round", help="create a prompt draft and stop")
     init_round.add_argument("--round", type=int, default=None, help="round number; defaults to next available id")
-    init_round.add_argument("--title", required=True, help="prompt title")
+    init_round.add_argument("--title", default="任务", help="prompt title; use --title-file for reliable non-ASCII text")
+    init_round.add_argument("--title-file", default=None, help="UTF-8 file containing the prompt title")
     init_round.add_argument("--force", action="store_true", help="overwrite existing prompt")
     init_round.set_defaults(func=cmd_init_round)
 

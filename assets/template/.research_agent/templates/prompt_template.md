@@ -31,12 +31,14 @@
 - 必须遵守 `PROJECT_RULES.md` 中与本轮任务相关的科研工程、数据、benchmark、模型、统计、文档、日志和低 token 规则。
 - 新增说明类 Markdown 文档默认使用中文；代码标识、命令、配置键、字段名、路径、模型名和指标名保留英文。
 - 如涉及数据、模型或 benchmark，必须注意可复现性和数据泄漏风险。
+- 如涉及大规模实验、昂贵推理或外部 API，必须先做 pilot / dry-run，估算规模与成本，记录运行环境并设计缓存和断点恢复。
+- 不读取 API key、credential、token、`.pem` 或 `.key` 文件内容。
 
 ## 预期输出
 
 - 本轮需要创建或修改的文件。
 - 本轮需要运行的检查、测试或命令。
-- 执行后必须生成 `ans_qes/result{round}.md`。
+- 执行后必须生成 `ans_qes/result{round}_{title_slug}.md`。
 
 ## 暂不执行
 

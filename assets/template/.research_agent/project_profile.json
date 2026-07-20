@@ -1,0 +1,18 @@
+{
+  "project_plan": "project_plan.md",
+  "project_rules": "PROJECT_RULES.md",
+  "context_rules": null,
+  "docs_dir": "docs",
+  "output_dirs": [
+    "data",
+    "results",
+    "outputs",
+    "logs",
+    "checkpoints"
+  ],
+  "environment_docs": [],
+  "prompt_naming": "prompt{n}_{title}.md",
+  "result_naming": "result{n}_{title}.md",
+  "max_recent_results_to_read": 3,
+  "context_mode": "low"
+}

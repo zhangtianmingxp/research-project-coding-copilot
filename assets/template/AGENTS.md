@@ -33,3 +33,6 @@ Project-level research code rules:
 - Read it with low-context discipline: use `rg` to find relevant sections, then inspect bounded excerpts.
 - Do not bypass reproducibility, leakage checks, benchmark fairness, interpretability, documentation, or logging requirements merely to finish a round quickly.
 - Newly generated explanatory Markdown documents should default to Chinese unless the user, publication target, or collaborator context requires English.
+- Use pilot-first for large experiments, expensive inference, and external API calls. Cache responses and record runtime/environment details.
+- For long projects, maintain checkpoint summaries, recommended reading order, and claim-to-evidence links instead of repeatedly loading full history.
+- Never read credential, API-key, token, `.pem`, or `.key` file contents; only report their presence and Git tracking risk.

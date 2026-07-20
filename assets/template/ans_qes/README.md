@@ -12,17 +12,19 @@
 ## 文件命名
 
 ```text
-prompt1.md
-result1.md
-prompt2.md
-result2.md
+prompt1_任务短名.md
+result1_任务短名.md
+prompt2_任务短名.md
+result2_任务短名.md
 ```
 
 编号从 1 开始递增。新增 prompt 前应检查已有编号，选择下一个可用编号。
 
+任务短名应简洁描述本轮核心任务，prompt 和 result 使用相同短名。历史项目中的 `prompt1.md` / `result1.md` 仍然兼容。若历史编号存在缺口，下一轮默认使用当前最大编号加一，不自动回填缺口。
+
 ## 生成 promptn.md
 
-只有当用户明确要求生成 prompt 时，AI 才创建新的 `promptn.md`。生成后必须停止，不得执行。
+只有当用户明确要求生成 prompt 时，AI 才创建新的 `promptn_任务短名.md`。生成后必须停止，不得执行。
 
 推荐格式：
 
@@ -44,7 +46,7 @@ result2.md
 
 ## 执行并生成 resultn.md
 
-只有当用户明确要求执行某个 prompt 时，AI 才读取对应 `promptn.md`，执行任务，并生成同编号 `resultn.md`。生成后必须停止，不得进入下一轮。
+只有当用户明确要求执行某个 prompt 时，AI 才读取对应 `promptn_任务短名.md`，执行任务，并生成同编号同短名的 `resultn_任务短名.md`。生成后必须停止，不得进入下一轮。
 
 推荐格式：
 

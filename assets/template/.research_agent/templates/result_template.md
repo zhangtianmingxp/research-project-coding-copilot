@@ -2,7 +2,7 @@
 
 ## 对应 Prompt
 
-- `ans_qes/prompt{round}.md`
+- `ans_qes/prompt{round}_{title_slug}.md`
 
 ## 执行摘要
 
@@ -27,6 +27,8 @@
 ## 项目规则符合情况
 
 说明本轮是否满足 `PROJECT_RULES.md` 中与任务相关的规则，例如可复现性、数据泄漏防控、benchmark 公平性、日志、文档和低 token 上下文要求。
+
+如涉及昂贵计算或外部 API，还应记录 pilot 结果、规模/成本估计、缓存位置、运行环境和恢复方式。
 
 ## 风险与注意事项
 

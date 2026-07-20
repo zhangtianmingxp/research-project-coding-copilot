@@ -35,17 +35,36 @@ scripts/research_copilot.py
 Supported commands:
 
 - `init --target PATH`: copy `assets/template/` into a target repository without overwriting existing files unless `--force` is set.
+- `adopt --target PATH --dry-run`: detect an existing project's plan, rules, docs, environment records, naming style, and current round; remove `--dry-run` to install workflow state without replacing project-owned files. Repeated adoption preserves the profile/progress unless `--refresh-state` is explicit.
 - `status --target PATH`: print current round, phase, latest prompt/result/commit, and open issues.
 - `context-summary --target PATH`: print a bounded repository summary, file counts, large files, top directories, project plan headings, recent round files, and Git status without loading large contents.
 - `check --target PATH`: check required template files, prompt/result numbering, and safety flags.
 - `plan-check --target PATH`: warn when `project_plan.md` still looks like an unfilled template.
 - `next-id --target PATH`: print the next prompt/result round number.
-- `draft-prompt --target PATH --title TITLE`: create `ans_qes/promptn.md`, update state to `prompt_drafted`, then stop.
+- `draft-prompt --target PATH --title TITLE`: create `ans_qes/promptn.md`, update state to `prompt_drafted`, then stop. On Windows, `--title-file PATH` avoids non-ASCII shell argument corruption.
+- `prompt-check --target PATH --round N`: warn when a prompt is oversized, contains too many independent tasks, or lacks expected task concepts.
 - `result-check --target PATH --round N --mark-executed`: validate `resultn.md` sections and update state to `executed`.
+- `preflight --target PATH --round N`: check plan/rules, round pairing, Git state, sensitive-looking paths, large tracked files, and runtime documentation.
+- `checkpoint --target PATH --start-round A --end-round B`: create a compact workflow-checkpoint scaffold for long project history.
 - `suggest-commit --target PATH --round N`: print a `pN: ...` commit message suggestion and changed files.
 - `continue-plan --target PATH --rounds N`: check numbering and record a bounded continuation request for the next N rounds.
 
 The CLI is deliberately bounded. It does not execute prompt tasks, call model APIs, commit, push, or generate the next round automatically.
+
+Round filenames may include task titles, such as `prompt12_任务短名.md`. The next round is the maximum existing round plus one; historical gaps are warnings, not slots to refill.
+
+## Existing Project Adoption
+
+Do not force mature repositories into the default template names. Detect and record project-owned paths in `.research_agent/project_profile.json`, including:
+
+- `PROJECT_PLAN*.md` or another configured project plan;
+- project and context rule files;
+- `doc/` or `docs/`;
+- output/generated directories;
+- runtime environment documents;
+- titled or plain prompt/result naming.
+
+Preserve existing rules and plans. Install only missing workflow-control files.
 
 ## Bounded Continuation
 
@@ -122,6 +141,8 @@ Generate a prompt only when the user asks. A good `promptn.md` includes:
 
 After writing the prompt, update state and stop.
 
+Run `prompt-check` before execution. A large prompt with many independent tasks should normally be split into multiple rounds.
+
 ## Prompt Execution
 
 Execute only when the user explicitly says to execute a specific prompt. The resulting `resultn.md` should include:
@@ -138,6 +159,33 @@ Execute only when the user explicitly says to execute a specific prompt. The res
 - next-step ideas without starting the next prompt
 
 After writing the result, update state and stop.
+
+Result validation is concept-based. Accept project-specific headings such as `本轮目的`, `核心数值`, `QC 结果`, and `解释边界` when they satisfy the same semantic requirements as the default template.
+
+## Long-Running And External Work
+
+Before expensive data processing, model inference, or external API calls:
+
+1. Run a small pilot or dry-run.
+2. Estimate input scale, runtime, API requests, and storage.
+3. Record environment and dependency versions.
+4. Cache external responses and make work resumable.
+5. Keep credentials outside tracked files and never read them into model context.
+6. Promote to a formal run only after pilot QC passes.
+
+## History Compaction And Evidence
+
+For long projects, create checkpoints every 10-20 substantial rounds. Each checkpoint should summarize:
+
+- stage objective and completion status;
+- stable conclusions and negative results;
+- interpretation boundaries;
+- key code/config/data/figure artifacts;
+- important decisions and rejected alternatives;
+- claim-to-evidence mapping;
+- unresolved questions and next stage.
+
+Maintain a `doc/README.md` or `docs/README.md` with recommended reading order and current conclusion entry points.
 
 ## Commit Behavior
 

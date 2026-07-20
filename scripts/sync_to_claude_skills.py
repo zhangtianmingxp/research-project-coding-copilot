@@ -22,6 +22,8 @@ def default_claude_home() -> Path:
 
 def should_skip(path: Path) -> bool:
     rel = path.relative_to(SOURCE_ROOT).as_posix()
+    if any(part.startswith(".tmp") for part in Path(rel).parts):
+        return True
     if rel == ".git" or rel.startswith(".git/"):
         return True
     if rel == ".vscode" or rel.startswith(".vscode/"):

@@ -27,18 +27,35 @@ Prefer the skill-level CLI for deterministic workflow actions:
 
 ```bash
 python scripts/research_copilot.py init --target .
+python scripts/research_copilot.py adopt --target . --dry-run
 python scripts/research_copilot.py status --target .
 python scripts/research_copilot.py context-summary --target .
 python scripts/research_copilot.py check --target .
 python scripts/research_copilot.py plan-check --target .
 python scripts/research_copilot.py next-id --target .
 python scripts/research_copilot.py draft-prompt --target . --title "..."
+python scripts/research_copilot.py prompt-check --target . --round N
 python scripts/research_copilot.py result-check --target . --round N --mark-executed
+python scripts/research_copilot.py preflight --target . --round N
+python scripts/research_copilot.py checkpoint --target . --start-round A --end-round B
 python scripts/research_copilot.py suggest-commit --target . --round N
 python scripts/research_copilot.py continue-plan --target . --rounds N
 ```
 
 The CLI is allowed to install template files, inspect state, create prompt drafts, validate result files, update workflow state, and suggest commit messages. It must not execute prompt tasks, commit, push, or call model APIs.
+
+On Windows, use `--title-file PATH` with a UTF-8 one-line file when a non-ASCII `--title` would be corrupted by shell argument encoding.
+
+Recognize both plain and titled round files:
+
+```text
+prompt12.md
+prompt12_任务短名.md
+result12.md
+result12_任务短名.md
+```
+
+Use `max(existing_rounds) + 1` for the next round. Report historical gaps but do not fill them automatically.
 
 ## Context Budget Rules
 
@@ -63,6 +80,7 @@ rg -n "term|heading|function|error" .
 5. Do not repeatedly reload `project_plan.md`, `PROJECT_PLAN.md`, `PROJECT_RULES.md`, or many old `result*.md` files. Reuse summaries and load only the sections needed for the current round.
 6. When a file is large or generated, summarize it with counts, headings, schema, columns, file size, and a few targeted rows instead of loading raw content.
 7. If broader context is truly needed, state why, then expand scope gradually.
+8. Never read sensitive-looking files such as API-key, credential, token, `.pem`, or `.key` files. Report paths and Git tracking status only.
 
 ## Scientific Code Development Rules
 
@@ -88,6 +106,20 @@ python scripts/research_copilot.py init --target .
 3. Tell the user to fill in `project_plan.md` or replace it with their real research plan.
 4. Stop after initialization. Do not create `prompt1.md` unless the user asked for it.
 
+## When Adopting An Existing Repository
+
+Use this when a mature project already has plans, rules, prompt/result history, or custom documentation.
+
+1. Preview detection without writing:
+
+```bash
+python scripts/research_copilot.py adopt --target . --dry-run
+```
+
+2. Confirm that the detected project plan, rules, context rules, docs directory, environment docs, and current round are correct.
+3. Run `adopt` without `--dry-run` to add only `.research_agent` state/profile files and the local helper. Preserve existing `AGENTS.md`, project rules, plans, and documentation. Repeated adoption also preserves the existing profile and progress unless the user explicitly requests `--refresh-state`.
+4. Use `PROJECT_PLAN*.md` or a configured plan path when `project_plan.md` is not present.
+
 If the user only wants to inspect readiness, run:
 
 ```bash
@@ -105,6 +137,7 @@ Use this when the user asks to generate a prompt, next prompt, `prompt1.md`, `pr
 python scripts/research_copilot.py context-summary --target .
 python scripts/research_copilot.py check --target .
 python scripts/research_copilot.py next-id --target .
+python scripts/research_copilot.py preflight --target .
 ```
 
 2. Read `.research_agent/AGENTS.md`, relevant sections of `PROJECT_RULES.md`, `project_plan.md`, `.research_agent/project_state.md`, and recent relevant `ans_qes/result*.md` files only as needed.
@@ -115,23 +148,26 @@ python scripts/research_copilot.py draft-prompt --target . --round N --title "..
 ```
 
 4. Edit the generated `ans_qes/promptn.md` into a high-quality Chinese task prompt using the project plan and current progress.
-5. Stop and wait for user review. Do not execute the prompt.
+5. Run `prompt-check --round N`. Split prompts that are too broad, contain too many independent tasks, or exceed the configured size guideline.
+6. Stop and wait for user review. Do not execute the prompt.
 
 ## When Executing `promptn.md`
 
 Use this only when the user explicitly says to execute a specific prompt.
 
 1. Read the specified `ans_qes/promptn.md` and relevant sections of `PROJECT_RULES.md`.
-2. Execute only that round's task.
-3. Run focused checks/tests appropriate to the changes.
-4. Write `ans_qes/resultn.md`.
-5. Validate and mark the result:
+2. Run `preflight --round N` before expensive, external-API, data-processing, or long-running work.
+3. Use pilot-first execution. Estimate cost/scale, cache external API outputs, record the runtime environment, and make long jobs resumable when relevant.
+4. Execute only that round's task.
+5. Run focused checks/tests appropriate to the changes.
+6. Write `ans_qes/resultn.md`.
+7. Validate and mark the result:
 
 ```bash
 python scripts/research_copilot.py result-check --target . --round N --mark-executed
 ```
 
-6. Stop and wait for user review. Do not generate `prompt{n+1}.md`.
+8. Stop and wait for user review. Do not generate `prompt{n+1}.md`.
 
 If `resultn.md` already exists, do not overwrite it unless the user explicitly asks.
 
@@ -164,6 +200,16 @@ python scripts/research_copilot.py result-check --target . --round n --mark-exec
    - context needed becomes too broad for low-context mode.
 5. Do not push. Commit during bounded continuation only if the user explicitly asked for auto-commit; otherwise suggest commit messages and stop with a summary.
 6. Never continue beyond N rounds without a new user instruction.
+
+## When History Becomes Large
+
+After roughly 10-20 substantial rounds, or when prompt/result history becomes expensive to reload, create a checkpoint scaffold:
+
+```bash
+python scripts/research_copilot.py checkpoint --target . --start-round A --end-round B
+```
+
+Synthesize it into a compact Chinese summary containing stable conclusions, negative results, interpretation limits, key artifacts, decisions, claim-to-evidence links, and unresolved questions. Prefer this checkpoint plus the latest 1-3 results over rereading the full history.
 
 ## When Suggesting Or Making Commits
 

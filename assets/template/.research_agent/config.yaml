@@ -11,6 +11,13 @@ required_project_rules: PROJECT_RULES.md
 context_mode: low
 max_recent_results_to_read: 3
 prefer_context_summary: true
+checkpoint_every_rounds: 20
+prompt_max_bytes: 12000
+prompt_max_numbered_tasks: 5
+pilot_first_for_expensive_work: true
+cache_external_api_results: true
+require_runtime_environment_record: true
+never_read_sensitive_files: true
 avoid_full_reads:
   logs: true
   generated_outputs: true

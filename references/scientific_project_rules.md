@@ -37,6 +37,15 @@ All code, experiments, documentation, and results should support:
 - Benchmarks must use comparable splits, inputs, preprocessing, metrics, and evaluation settings.
 - Mark external data, pretrained weights, or extra information clearly.
 
+## Pilot, Runtime, And External Services
+
+- Run a small pilot or dry-run before large-scale experiments.
+- Estimate runtime, input scale, storage, API requests, and likely cost before promotion to a formal run.
+- Cache external API/model responses with request parameters, model/version identifiers, and timestamps.
+- Make long-running jobs resumable and emit stage-level progress.
+- Maintain a concise runtime environment document with the preferred environment and verified critical packages.
+- Never expose or load API keys, credentials, tokens, private keys, or secret files into model context.
+
 ## Model Development
 
 - Start with strong baselines before complex models.
@@ -58,6 +67,8 @@ All code, experiments, documentation, and results should support:
 - Plotting scripts and result-generation scripts should be reproducible.
 - Important design decisions should be written into docs, not left only in chat history.
 - README files should help new contributors understand project goals, data, environment setup, minimal pipeline, reproduction, and extension.
+- Mature projects should maintain a current research summary, recommended reading order, workflow checkpoints, figure/table inventory, and claim-to-evidence map.
+- Lock central claims only when their supporting metrics, robustness checks, figures, and interpretation boundaries are traceable.
 
 ## Markdown Documentation Language
 
