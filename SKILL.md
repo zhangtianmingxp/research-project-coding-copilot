@@ -21,6 +21,29 @@ project_plan.md -> ans_qes/promptn.md -> user review -> execute -> ans_qes/resul
 
 Never advance to the next phase without a clear user instruction.
 
+## Short Command Contract
+
+The user does not need to restate safety clauses such as "do not execute", "do not create the next prompt", "do not commit", or "do not push". Treat these concise Chinese commands as complete instructions with built-in phase boundaries:
+
+| User command | Required behavior |
+| --- | --- |
+| `初始化` | Initialize a new repository template, then stop |
+| `接管项目` | Detect and adopt an existing repository while preserving project-owned files, then stop |
+| `项目体检` | Run read-only context, structure, plan, and preflight checks |
+| `状态` | Report current round, phase, and next valid action |
+| `生成下一轮` or `下一轮` | Generate only the next prompt and stop for review |
+| `修改当前 prompt：...` | Revise only the current prompt and stop |
+| `执行当前轮` | Execute the latest current prompt, validate work, write the matching result, and stop |
+| `修改当前 result：...` | Address the feedback, revalidate, update the current result, and stop |
+| `提交当前轮` | Generate the round commit message and commit relevant changes; do not push |
+| `推送` | Push already committed changes to the configured current branch |
+| `继续 N 轮` | Generate and execute at most N rounds; do not commit or push by default |
+| `继续 N 轮并逐轮提交` | Generate, execute, validate, and commit each of at most N rounds; do not push |
+
+The short command itself is the user's authorization for the action named in that row. Do not ask the user to repeat the same authorization. Ask only when required information is missing, the target is ambiguous, or an approval boundary outside this workflow applies.
+
+For `执行当前轮`, resolve the highest prompt round without a matching completed result unless the user names a round. For `提交当前轮`, use the highest completed result round unless the user names a round.
+
 ## Action CLI
 
 Prefer the skill-level CLI for deterministic workflow actions:
@@ -104,7 +127,7 @@ python scripts/research_copilot.py init --target .
 
 2. If files already exist, do not overwrite unless the user explicitly requested it. Use `--force` only for explicit overwrite requests.
 3. Tell the user to fill in `project_plan.md` or replace it with their real research plan.
-4. Stop after initialization. Do not create `prompt1.md` unless the user asked for it.
+4. Stop after initialization. `初始化` alone does not include prompt generation.
 
 ## When Adopting An Existing Repository
 
@@ -116,9 +139,10 @@ Use this when a mature project already has plans, rules, prompt/result history, 
 python scripts/research_copilot.py adopt --target . --dry-run
 ```
 
-2. Confirm that the detected project plan, rules, context rules, docs directory, environment docs, and current round are correct.
-3. Run `adopt` without `--dry-run` to add only `.research_agent` state/profile files and the local helper. Preserve existing `AGENTS.md`, project rules, plans, and documentation. Repeated adoption also preserves the existing profile and progress unless the user explicitly requests `--refresh-state`.
-4. Use `PROJECT_PLAN*.md` or a configured plan path when `project_plan.md` is not present.
+2. Check that the detected project plan, rules, context rules, docs directory, environment docs, and current round are unambiguous.
+3. When the user said `接管项目`, run `adopt` without `--dry-run` in the same turn if detection is unambiguous. The command already authorizes this non-destructive adoption, so do not ask for duplicate confirmation.
+4. Add only `.research_agent` state/profile files and the local helper. Preserve existing `AGENTS.md`, project rules, plans, and documentation. Repeated adoption also preserves the existing profile and progress unless the user explicitly requests `--refresh-state`.
+5. Use `PROJECT_PLAN*.md` or a configured plan path when `project_plan.md` is not present. Stop and explain only when multiple candidates or conflicting rules make the target genuinely ambiguous.
 
 If the user only wants to inspect readiness, run:
 
@@ -153,7 +177,7 @@ python scripts/research_copilot.py draft-prompt --target . --round N --title "..
 
 ## When Executing `promptn.md`
 
-Use this only when the user explicitly says to execute a specific prompt.
+Use this when the user says `执行当前轮`, asks to execute the current prompt, or names a specific prompt to execute.
 
 1. Read the specified `ans_qes/promptn.md` and relevant sections of `PROJECT_RULES.md`.
 2. Run `preflight --round N` before expensive, external-API, data-processing, or long-running work.
@@ -222,7 +246,7 @@ Use this only when the user explicitly asks for a commit message or commit.
 python scripts/research_copilot.py suggest-commit --target . --round N
 ```
 
-3. Commit only after explicit user confirmation.
+3. `提交当前轮` or another explicit commit instruction is the required confirmation; execute the commit without asking for a duplicate confirmation.
 4. Do not push unless the user explicitly asks.
 5. Stop after commit.
 

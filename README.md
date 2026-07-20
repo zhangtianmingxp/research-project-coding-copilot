@@ -1,105 +1,152 @@
 # Research Project Coding Copilot
 
-一个面向 Codex / Claude Code 的交互式科研代码项目推进 skill。
+面向 Codex 和 Claude Code 的交互式科研代码项目推进 skill。
 
-它适合长期、正式、可发表论文或可支撑严肃科研结论的代码项目。核心目标是把科研项目推进过程变成可追踪的链条：
-
-```text
-project_plan.md -> promptn.md -> resultn.md -> 检查/审查 -> commit 建议 -> 下一轮
-```
-
-## 它是什么
-
-这是一个 Codex skill，提供：
-
-- 可安装到任意科研仓库的项目模板；
-- `project_plan.md` 计划书模板；
-- `PROJECT_RULES.md` 科研代码开发规则；
-- `promptn.md` / `resultn.md` 两阶段记录机制；
-- 低 token 上下文工作规则；
-- 状态检查、编号检查、prompt 草稿、result 校验、commit message 建议；
-- 已有科研项目的自动识别与接管；
-- prompt 范围检查、执行前 preflight 和历史 checkpoint；
-- 用户明确要求时的受限连续推进 N 轮。
-
-## 它不是什么
-
-它不是无限自动 agent。
-
-默认不会：
-
-- 自动执行刚生成的 prompt；
-- 自动生成下一轮 prompt；
-- 自动 commit；
-- 自动 push；
-- 调用远程 LLM API；
-- 无限循环直到项目“完成”。
-
-如果用户明确要求“继续 N 轮”，它只会进入受限连续推进模式，最多执行 N 轮，并在测试失败、不确定下一步、大文件/密钥风险、数据泄漏风险、需要 push 或上下文过宽时停止。
-
-## 安装为 Codex Skill
-
-把本仓库复制或克隆到 Codex skills 目录：
+它把长期科研项目组织为可检查、可追踪的工作链：
 
 ```text
-C:\Users\<YOU>\.codex\skills\research-project-coding-copilot
+project plan -> promptN -> 执行 -> resultN -> commit -> 下一轮
 ```
 
-或者在本仓库运行同步脚本：
+## 最短用法
+
+安装 skill 后，在目标科研仓库中打开 Codex。新项目只需输入：
+
+```text
+$research-project-coding-copilot 初始化
+```
+
+填写生成的 `project_plan.md`，然后输入：
+
+```text
+$research-project-coding-copilot 生成下一轮
+```
+
+检查生成的 prompt。满意后，在同一个会话中依次输入：
+
+```text
+执行当前轮
+提交当前轮
+生成下一轮
+```
+
+不需要反复补充“不要执行”“不要生成下一轮”“不要 commit”或“不要 push”。这些阶段边界是 skill 的内置规则。
+
+## 短指令
+
+| 指令 | 行为 |
+| --- | --- |
+| `初始化` | 为新项目安装模板，然后停下等待填写计划书 |
+| `接管项目` | 识别已有项目的计划书、规则、历史轮次和文档，并安装工作流状态 |
+| `项目体检` | 只读检查项目结构、轮次、Git、敏感文件和运行环境 |
+| `状态` | 显示当前轮次、阶段和下一步 |
+| `生成下一轮` | 生成下一个 `promptN`，等待审查 |
+| `修改当前 prompt：...` | 按反馈修改当前 prompt，不执行 |
+| `执行当前轮` | 执行当前 prompt，测试并生成同轮 `resultN` |
+| `修改当前 result：...` | 根据反馈补充工作并更新当前 result |
+| `提交当前轮` | 生成 `pN: ...` 提交信息并执行 commit，不 push |
+| `推送` | 将已经提交的内容 push 到当前远程分支 |
+| `继续 N 轮` | 连续生成并执行 N 轮，完成后停止，默认不 commit、不 push |
+| `继续 N 轮并逐轮提交` | 连续执行 N 轮并逐轮 commit，完成后停止，不 push |
+
+新会话建议在第一条指令前写一次 `$research-project-coding-copilot`。skill 被调用后，当前会话可以直接使用表中的短指令。
+
+## 默认边界
+
+每条普通指令只推进一个阶段：
+
+```text
+生成下一轮 -> 等待 prompt 审查
+执行当前轮 -> 等待 result 审查
+提交当前轮 -> commit 后停止
+生成下一轮 -> 开始下一轮
+```
+
+`继续 N 轮` 是唯一的多轮模式。它最多执行指定轮数，并在测试失败、科研判断不明确、数据泄漏风险、敏感文件风险、破坏性操作或外部凭据缺失时提前停止。
+
+任何模式都不会自行无限循环。只有明确输入 `推送` 或在指令中写明“并推送”才会 push。
+
+## 让 AI 帮你安装
+
+下载或克隆本项目后，可以在本项目目录中打开 Codex，直接输入：
+
+```text
+把当前项目安装成全局 Codex skill
+```
+
+AI 会读取本项目的安装脚本，将 skill 安装到当前用户的 Codex skills 目录，并验证安装结果。这里的“全局”表示当前用户的所有项目都可以使用，不是写入 Codex 保留的 `.system` 内置 skill 目录。
+
+安装完成后，重新打开一个 Codex 会话，即可在任意科研项目中直接指名使用：
+
+```text
+$research-project-coding-copilot 初始化
+$research-project-coding-copilot 接管项目
+$research-project-coding-copilot 状态
+```
+
+使用 Claude Code 时也可以在本项目目录中输入：
+
+```text
+把当前项目安装成全局 Claude Code skill
+```
+
+AI 应运行对应的同步脚本并报告实际安装位置。下面保留手动安装方法，方便需要自行控制安装目录或排查问题时使用。
+
+## 安装到 Codex
+
+克隆本仓库后运行：
 
 ```bash
 python scripts/sync_to_codex_skills.py
 ```
 
-验证 skill：
+默认安装到：
+
+```text
+C:\Users\<YOU>\.codex\skills\research-project-coding-copilot
+```
+
+验证安装：
 
 ```bash
 python C:\Users\<YOU>\.codex\skills\.system\skill-creator\scripts\quick_validate.py C:\Users\<YOU>\.codex\skills\research-project-coding-copilot
 ```
 
-在 Windows 如果遇到编码问题，可以先设置：
+## 安装到 Claude Code
 
-```powershell
-$env:PYTHONUTF8='1'
-```
-
-## 安装为 Claude Code Skill
-
-Claude Code 也支持 `SKILL.md` 形式的 skills。可以同步到用户级 Claude skills 目录：
+运行：
 
 ```bash
 python scripts/sync_to_claude_skills.py
 ```
 
-默认目标位置：
+默认安装到：
 
 ```text
 C:\Users\<YOU>\.claude\skills\research-project-coding-copilot
 ```
 
-也可以安装到某个项目内的 Claude skills 目录：
+也可以安装到单个项目：
 
 ```bash
 python scripts/sync_to_claude_skills.py --target .claude/skills/research-project-coding-copilot
 ```
 
-在 Claude Code 中使用时，可以直接描述需求，例如：
+Claude Code 中可使用同样的短指令，例如：
 
 ```text
-使用 research-project-coding-copilot skill，在当前仓库初始化科研项目推进流程。不要生成 prompt1，不要执行，不要 commit。
+使用 research-project-coding-copilot：接管项目
 ```
 
-注意：`agents/openai.yaml` 是 Codex/OpenAI 侧 UI 元数据，Claude Code 可以忽略它；核心可用部分是 `SKILL.md`、`scripts/`、`references/` 和 `assets/template/`。
+## 新项目与已有项目
 
-## 初始化科研项目
-
-在目标科研仓库中打开 Codex，然后说：
+新项目：
 
 ```text
-使用 $research-project-coding-copilot，在当前仓库初始化科研项目推进流程。不要生成 prompt1，不要执行，不要 commit。
+$research-project-coding-copilot 初始化
 ```
 
-它会安装模板文件：
+它会安装：
 
 ```text
 AGENTS.md
@@ -109,92 +156,78 @@ ans_qes/
 .research_agent/
 scripts/research_flow.py
 tests/
+docs/
 ```
 
-然后填写或替换 `project_plan.md`。
+已有项目：
 
-## 接管已有科研项目
-
-如果项目已经有自己的计划书、规则、`ans_qes/` 历史和文档目录，先做只读预览：
-
-```bash
-python scripts/research_copilot.py adopt --target E:\path\to\project --dry-run
+```text
+$research-project-coding-copilot 接管项目
 ```
 
-它会自动识别：
+接管会自动识别：
 
 - `project_plan.md`、`PROJECT_PLAN.md` 或 `PROJECT_PLAN*.md`；
-- `PROJECT_RULES.md` 和 context rules；
+- 项目规则和上下文规则；
 - `doc/` 或 `docs/`；
 - runtime environment 文档；
 - `prompt12.md` 或 `prompt12_任务短名.md` 命名；
 - 当前最大轮次和下一轮编号。
 
-确认识别结果后，去掉 `--dry-run`。它只安装 `.research_agent` 状态/画像和本地 helper，不覆盖已有项目规则与计划书。重复接管默认保留已有画像和进度；只有明确需要按磁盘文件重建时才加 `--refresh-state`。
+接管不会覆盖已有计划书、项目规则和科研文档。重复接管默认保留已有画像和进度。
 
-## 基本工作流
+## 轮次文件
 
-生成第一轮 prompt，不执行：
-
-```text
-使用 $research-project-coding-copilot，读取 project_plan.md，生成 ans_qes/prompt1.md，不要执行。
-```
-
-审查 prompt 后执行：
+支持带任务短名或不带短名的文件：
 
 ```text
-执行 ans_qes/prompt1.md，完成后生成 ans_qes/result1.md，然后停止。不要生成 prompt2，不要 commit。
+ans_qes/prompt12.md
+ans_qes/prompt12_任务短名.md
+ans_qes/result12.md
+ans_qes/result12_任务短名.md
 ```
 
-生成 commit message 建议：
+下一轮使用现有最大编号加一。历史缺号只报告，不自动回填。
 
-```text
-根据 ans_qes/prompt1.md 和 ans_qes/result1.md 生成 commit message 建议，不要提交。
-```
+说明类 Markdown 默认使用中文；代码标识、路径、配置键、模型名和标准技术术语可以保留英文。
 
-继续下一轮：
+## 科研工程约束
 
-```text
-根据当前 project_plan.md、project_state.md 和 result1.md，生成 ans_qes/prompt2.md，不要执行。
-```
+skill 默认要求：
 
-## 继续 N 轮
+- 模块化科研代码，不把一次性脚本作为正式 pipeline；
+- 配置、数据、模型、评价和可解释性解耦；
+- pilot-first，昂贵任务先运行小规模验证；
+- 外部 API 结果缓存、成本记录和断点恢复；
+- 数据来源、配置、环境、随机种子和 Git commit 可追踪；
+- benchmark 公平并检查数据泄漏；
+- 重要结论保留不确定性、负结果和解释边界；
+- 长任务有日志和进度反馈；
+- 大文件、密钥、模型权重和生成结果不误提交。
 
-如果当前已经做到 `result5.md`，可以要求继续固定轮数：
+## 大项目与低 Token 模式
 
-```text
-使用 $research-project-coding-copilot，从当前进度继续执行 3 轮。每轮生成 prompt/result，不 push，遇到风险就停止。
-```
+项目变大后，skill 会：
 
-内部会先运行：
+- 先搜索和生成仓库摘要，再读取必要片段；
+- 默认跳过 `outputs/`、大型数据、日志和生成目录的内容枚举；
+- 不读取 API key、token、credential、`.pem` 或 `.key` 文件；
+- 优先读取 checkpoint 和最近 1 至 3 个相关 result；
+- 对表格、manifest 和日志先做程序化摘要；
+- 每 10 至 20 个重要轮次建议生成 workflow checkpoint。
 
-```bash
-python scripts/research_copilot.py context-summary --target .
-python scripts/research_copilot.py continue-plan --target . --rounds 3
-```
+低 token 模式不会跳过必要的测试、复现性检查、数据泄漏检查或科学验证。
 
-如果已有 `result5.md`，计划范围会是：
+## 高级 CLI
 
-```text
-prompt6/result6
-prompt7/result7
-prompt8/result8
-```
-
-完成后停止。
-
-## CLI 命令
-
-skill 级 CLI：
+日常使用不需要手动运行这些命令。它们主要用于调试、自动检查或单独操作状态：
 
 ```bash
 python scripts/research_copilot.py init --target .
-python scripts/research_copilot.py adopt --target . --dry-run
+python scripts/research_copilot.py adopt --target .
 python scripts/research_copilot.py status --target .
 python scripts/research_copilot.py context-summary --target .
 python scripts/research_copilot.py check --target .
-python scripts/research_copilot.py plan-check --target .
-python scripts/research_copilot.py next-id --target .
 python scripts/research_copilot.py draft-prompt --target . --title "..."
 python scripts/research_copilot.py prompt-check --target . --round N
 python scripts/research_copilot.py result-check --target . --round N --mark-executed
@@ -204,101 +237,15 @@ python scripts/research_copilot.py suggest-commit --target . --round N
 python scripts/research_copilot.py continue-plan --target . --rounds N
 ```
 
-Windows 终端传递中文标题出现乱码时，把标题写入 UTF-8 单行文件并使用 `--title-file title.txt`。生成的文件仍会采用 `promptN_中文短名.md`。
-
-轮次文件支持两种命名：
-
-```text
-prompt12.md
-prompt12_任务短名.md
-result12.md
-result12_任务短名.md
-```
-
-下一轮默认使用现有最大编号加一。历史编号缺口只报告，不自动回填。
-
-## 长期项目维护
-
-项目轮次较多后，建议每 10-20 个重要轮次生成一次 checkpoint：
-
-```bash
-python scripts/research_copilot.py checkpoint --target . --start-round 1 --end-round 20
-```
-
-checkpoint 应提炼稳定结论、负结果、解释边界、关键产物、重要决策、claim-to-evidence 映射和未解决问题。后续优先读取 checkpoint 与最近 1-3 个 result，避免重复加载完整历史。
-
-大规模实验、昂贵推理或外部 API 调用前，先运行：
-
-```bash
-python scripts/research_copilot.py preflight --target . --round N
-```
-
-并遵循 pilot-first、环境记录、API 缓存、断点恢复、敏感文件不读取等规则。
-
-安装到目标仓库后的本地辅助脚本：
-
-```bash
-python scripts/research_flow.py status
-python scripts/research_flow.py check
-python scripts/research_flow.py next-id
-python scripts/research_flow.py init-round --round 1 --title "..."
-python scripts/research_flow.py suggest-commit --round 1
-```
-
-## 低 Token 规则
-
-默认使用低上下文模式：
-
-- 先运行 `context-summary`；
-- 先用 `rg` 搜索，再读文件；
-- 只读相关片段；
-- 不默认整篇读取日志、notebook、manifest、结果表、大型 Markdown、旧 `result*.md`；
-- 对结构化文件优先总结行数、列名、缺失值、唯一键和少量样例；
-- 必要时再逐步扩大上下文。
-
-低 token 模式不是降低质量。必要的测试、数据泄漏检查、复现性检查和科学验证仍必须执行。
-
-## Markdown 文档语言
-
-新生成的说明类 Markdown 文档默认使用中文。
-
-代码标识、命令、配置键、字段名、路径、模型名、指标名和标准英文技术术语可以保留英文。
-
-## 目录结构
-
-```text
-SKILL.md
-agents/openai.yaml
-scripts/
-  research_copilot.py
-  install_template.py
-  sync_to_codex_skills.py
-  sync_to_claude_skills.py
-references/
-  workflow_protocol.md
-  context_hygiene.md
-  scientific_project_rules.md
-assets/template/
-  AGENTS.md
-  PROJECT_RULES.md
-  project_plan.md
-  ans_qes/
-  .research_agent/
-  scripts/research_flow.py
-```
+Windows 终端传递中文标题乱码时，可把标题写入 UTF-8 单行文件并使用 `--title-file title.txt`。
 
 ## 开发与同步
 
-修改本仓库后，同步到本机 Codex skills 目录：
+修改本仓库后，重新同步即可更新已安装版本：
 
 ```bash
 python scripts/sync_to_codex_skills.py
-```
-
-同步到本机 Claude Code skills 目录：
-
-```bash
 python scripts/sync_to_claude_skills.py
 ```
 
-然后新开 Codex / VS Code 窗口测试。
+同步脚本会跳过 `.git`、`.vscode`、Python 缓存和 `.tmp*` 临时目录。

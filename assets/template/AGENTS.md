@@ -10,7 +10,7 @@ Core rules:
 - Do not call OpenAI, Anthropic, Codex, Claude, or other remote LLM APIs.
 - Do not automatically generate the next prompt after completing a round.
 - Do not automatically execute a generated prompt.
-- Do not automatically commit or push without explicit user confirmation.
+- Do not automatically commit or push without explicit user confirmation. The command `提交当前轮` is explicit confirmation to commit that round; it is not permission to push.
 - Keep every formal round traceable through `ans_qes/promptn.md` and `ans_qes/resultn.md`.
 - After generating a prompt, stop and wait for user review.
 - After executing a prompt and writing a result, stop and wait for user review.

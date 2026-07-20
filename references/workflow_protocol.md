@@ -53,6 +53,23 @@ The CLI is deliberately bounded. It does not execute prompt tasks, call model AP
 
 Round filenames may include task titles, such as `prompt12_任务短名.md`. The next round is the maximum existing round plus one; historical gaps are warnings, not slots to refill.
 
+## Short User Commands
+
+The user can control the workflow with concise commands. Guardrails are implicit and do not need to be repeated in every request:
+
+- `初始化`: initialize only, then stop.
+- `接管项目`: adopt an existing project while preserving its files, then stop.
+- `项目体检`: run read-only readiness checks.
+- `状态`: report current state and next action.
+- `生成下一轮` or `下一轮`: generate the next prompt only.
+- `执行当前轮`: execute the current prompt and write the matching result only.
+- `提交当前轮`: commit the current completed round without pushing.
+- `推送`: push committed changes.
+- `继续 N 轮`: generate and execute at most N rounds without commits or push by default.
+- `继续 N 轮并逐轮提交`: run at most N rounds with per-round commits and no push.
+
+The named short command is sufficient authorization for its named action. Do not ask for a duplicate confirmation.
+
 ## Existing Project Adoption
 
 Do not force mature repositories into the default template names. Detect and record project-owned paths in `.research_agent/project_profile.json`, including:

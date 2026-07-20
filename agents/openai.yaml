@@ -1,7 +1,7 @@
 interface:
   display_name: "Research Project Coding Copilot"
   short_description: "Long-running research coding workflow"
-  default_prompt: "Use $research-project-coding-copilot to initialize or adopt this research repository, inspect its current round, and propose the next controlled step."
+  default_prompt: "Use $research-project-coding-copilot：状态"
 
 policy:
   allow_implicit_invocation: true
