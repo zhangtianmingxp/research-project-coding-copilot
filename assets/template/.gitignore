@@ -1,0 +1,91 @@
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Local environments and secrets
+.venv/
+venv/
+env/
+.env
+.env.*
+*.pem
+*.key
+*.token
+secrets/
+
+# Editor, OS, and notebook noise
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+.ipynb_checkpoints/
+
+# Logs, temporary files, and run caches
+*.log
+logs/
+tmp/
+temp/
+.cache/
+cache/
+runs/
+wandb/
+mlruns/
+tensorboard/
+
+# Large research data directories
+data/raw/
+data/external/
+data/interim/
+data/processed/
+data/cache/
+
+# Large generated results and artifacts
+results/
+outputs/
+artifacts/
+checkpoints/
+models/
+model_weights/
+
+# Common large scientific data and model files
+*.bam
+*.bai
+*.sam
+*.cram
+*.crai
+*.fastq
+*.fq
+*.fastq.gz
+*.fq.gz
+*.bed.gz
+*.vcf.gz
+*.tsv.gz
+*.csv.gz
+*.tar
+*.tar.gz
+*.zip
+*.h5
+*.h5ad
+*.hdf5
+*.loom
+*.zarr/
+*.cool
+*.mcool
+*.npy
+*.npz
+*.pkl
+*.pickle
+*.joblib
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# Keep workflow history files under ans_qes/ tracked by default.

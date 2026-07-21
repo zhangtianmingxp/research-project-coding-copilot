@@ -14,6 +14,8 @@ TEMPLATE_ROOT = SKILL_ROOT / "assets" / "template"
 
 def copy_tree(src: Path, dst: Path, force: bool, written: list[Path], skipped: list[Path]) -> None:
     for item in src.iterdir():
+        if item.name == "__pycache__" or item.suffix.lower() == ".pyc":
+            continue
         target = dst / item.name
         if item.is_dir():
             target.mkdir(parents=True, exist_ok=True)
