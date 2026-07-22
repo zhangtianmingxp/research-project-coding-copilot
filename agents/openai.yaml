@@ -1,6 +1,6 @@
 interface:
   display_name: "Research Project Coding Copilot"
-  short_description: "Publication-first research coding workflow"
+  short_description: "Compact claim-driven research validation"
   default_prompt: "Use $research-project-coding-copilot：状态"
 
 policy:

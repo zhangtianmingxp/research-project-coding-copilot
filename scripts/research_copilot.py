@@ -25,13 +25,18 @@ RESULT_RE = re.compile(r"^result(\d+)(?:_(.+))?\.md$", re.IGNORECASE)
 SECTION_RE = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
 
 RESULT_SECTION_CONCEPTS = {
+    "work": {"完成内容"},
+    "evidence": {"关键证据"},
+    "decision": {"决策"},
+    "boundary": {"Claim 边界", "claim 边界"},
+    "artifacts": {"产物与命令"},
+    "next": {"下一项最高价值工作"},
+}
+
+LEGACY_RESULT_REQUIRED = {
     "summary": {"执行摘要", "本轮目的", "本轮目标", "任务摘要"},
     "work": {"完成内容", "新增脚本", "新增图表", "核心数值", "主要结果"},
-    "files": {"涉及文件", "新增/更新文档", "新增文档", "输出文件", "产物"},
     "verification": {"验证情况", "验证命令", "QC 结果", "QC结果", "测试结果"},
-    "evidence": {"论文证据贡献", "科学证据贡献", "主线贡献", "证据层级与规模"},
-    "risks": {"风险与注意事项", "解释边界", "局限性", "剩余风险"},
-    "next": {"后续建议", "下一步建议", "推荐下一步"},
 }
 
 SENSITIVE_NAME_RE = re.compile(
@@ -359,6 +364,7 @@ def required_paths(root: Path) -> list[Path]:
     paths = [
         root / "AGENTS.md",
         root / "README.md",
+        root / "paper_map.md",
         ans_dir(root) / "README.md",
         agent_dir(root) / "AGENTS.md",
         agent_dir(root) / "config.yaml",
@@ -539,87 +545,54 @@ def project_plan_headings(root: Path) -> list[str]:
 def render_prompt(root: Path, round_id: int, title: str, focus: str | None) -> str:
     title_slug = safe_title_slug(title)
     result_path = f"ans_qes/result{round_id}_{title_slug}.md"
-    plan = project_plan_path(root)
-    rules = project_rules_path(root)
-    plan_name = rel(plan, root) if plan else "project_plan.md"
-    rules_name = rel(rules, root) if rules else "PROJECT_RULES.md"
-    headings = project_plan_headings(root)
-    recent = recent_results(root)
-    focus_text = focus or "请根据项目计划书、当前进度和用户最新意图，设计本轮范围适中的科研开发任务。"
-
-    headings_block = "\n".join(f"- {heading}" for heading in headings) or "- 待从 `project_plan.md` 读取。"
-    recent_block = "\n".join(recent) or "- 当前没有已完成的 result。"
+    focus_text = focus or "只完成足以支持本轮科学决策的工作。"
 
     return f"""# Prompt {round_id}
 
-## 任务标题
+## 科学决策
 
-{title}
+- Claim：待填写。
+- 决定性比较：待填写。
+- 本轮要回答的问题：{title}
 
-## 任务背景
-
-本项目使用交互式科研项目推进模板。请先读取并遵守：
-
-- `AGENTS.md`
-- `.research_agent/AGENTS.md`
-- `{rules_name}`
-- `{plan_name}`
-- `.research_agent/project_state.md`
-
-项目计划书当前可见章节包括：
-
-{headings_block}
-
-最近完成记录：
-
-{recent_block}
-
-## 任务目标
+## 最小充分工作
 
 {focus_text}
 
-## 论文主线贡献
+## 实验层级与规模
 
-- 明确本轮推进的核心科学问题、candidate claim、目标 figure/table 或具体 blocker。
-- 说明本轮完成后将如何改变论文证据状态。若只是工程工作，必须说明它解除哪个阻塞。
+- 层级：工程 smoke / 科研决策级 / 论文级。
+- 最小决策级规模及依据：待填写。
+- 独立实验单位、split、replicate/seed：待填写。
 
-## 实验层级与规模依据
+## 判据
 
-- 标记为工程 smoke、科研决策级、论文级或不适用。
-- 写明数据规模、独立实验单位、split、replicate/seed 和规模依据。
-- 用户或计划书规定的最低科研规模不可自行缩小；tiny smoke 只能验证代码路径，不能支持模型排名、效应判断或科学结论。
-- 已有 smoke 可复用时不得重复运行，应直接推进到足以回答本轮科学问题的规模。
-- 写明升级到下一层级或停止该方向的判据。
+- GO：达到预设标准，值得继续或升级到 paper-grade。
+- PIVOT：claim 仍值得研究，但当前比较、方法或假设需要改变。
+- STOP：在充分的决策级证据下未达到标准，或存在致命不可行性。
+- INCONCLUSIVE：证据不足或歧义仍大；写明唯一关键缺失证据。
 
-## 具体要求
+## 产物
 
-1. 本轮任务范围必须可执行、可检查、可记录，不要把多个大阶段揉在一起。
-2. 所有代码、实验和文档修改都必须服务于 `{plan_name}` 的科研目标。
-3. 必须遵守 `{rules_name}` 中与本轮任务相关的科研工程、数据、benchmark、模型、统计、文档、日志和低 token 上下文规则。
-4. 如涉及数据、模型、benchmark 或统计分析，必须注意可复现性、数据泄漏风险和结果可解释性。
-5. 工程实现和验证应与科学风险相称，不为不影响核心结论的问题反复增加轮次。
-6. 长任务需要清晰日志或进度输出。
-7. 新增说明类 Markdown 文档默认使用中文；代码标识、命令、配置键、字段名、路径、模型名和指标名保留英文。
-8. 不调用远程 LLM API。
-9. 不自动生成下一轮 prompt，除非用户明确要求受限连续推进 N 轮。
-10. 本轮不执行 `git add`、`git commit` 或 `git push`；GitHub 同步由用户自行完成。
-
-## 预期输出
-
-- 明确列出本轮需要创建或修改的文件。
-- 明确列出本轮需要运行的检查、测试或命令。
-- 执行结果需要说明是否满足 `{rules_name}` 的相关规则。
-- 执行完成后必须生成 `{result_path}`。
-
-## 暂不执行
-
-本文件只是任务提示词。生成后必须停止，等待用户审查和确认后才能执行。
+- 本轮代码、结果表或图表：待填写。
+- 执行后生成 `{result_path}`。
 """
 
 
 def result_sections(path: Path) -> set[str]:
     text = path.read_text(encoding="utf-8")
     return {match.group(1).strip() for match in SECTION_RE.finditer(text)}
+
+
+def compact_result_decision(text: str) -> str | None:
+    match = re.search(r"(?ms)^##\s+决策\s*$\n(.*?)(?=^##\s+|\Z)", text)
+    if match is None:
+        return None
+    decision = re.search(
+        r"(?im)^\s*(?:-\s*)?(GO|PIVOT|STOP|INCONCLUSIVE)(?:\s*[：:].*)?\s*$",
+        match.group(1),
+    )
+    return decision.group(1).upper() if decision else None
 
 
 def has_section_alias(sections: set[str], aliases: set[str]) -> bool:
@@ -860,6 +833,14 @@ def cmd_adopt(args: argparse.Namespace) -> int:
     skipped: list[Path] = []
     copy_tree(TEMPLATE_ROOT / ".research_agent", agent_dir(root), False, written, skipped)
 
+    paper_map_source = TEMPLATE_ROOT / "paper_map.md"
+    paper_map_target = root / "paper_map.md"
+    if not paper_map_target.exists():
+        shutil.copy2(paper_map_source, paper_map_target)
+        written.append(paper_map_target)
+    else:
+        skipped.append(paper_map_target)
+
     helper_source = TEMPLATE_ROOT / "scripts" / "research_flow.py"
     helper_target = root / "scripts" / "research_flow.py"
     if not helper_target.exists() or args.update_helper:
@@ -1004,16 +985,19 @@ def cmd_result_check(args: argparse.Namespace) -> int:
         problems.append(f"missing result for round {round_id}")
 
     if result_path is not None:
+        result_text = result_path.read_text(encoding="utf-8")
         sections = result_sections(result_path)
-        matched: set[str] = set()
-        for concept, aliases in RESULT_SECTION_CONCEPTS.items():
-            if has_section_alias(sections, aliases):
-                matched.add(concept)
-        for concept in ("summary", "work", "verification"):
-            if concept not in matched:
-                problems.append(f"{rel(result_path, root)} missing required concept: {concept}")
-        for concept in sorted(set(RESULT_SECTION_CONCEPTS) - matched):
-            warnings.append(f"{rel(result_path, root)} has no recognized section for: {concept}")
+        is_compact_result = has_section_alias(sections, {"下一项最高价值工作"})
+        concepts = RESULT_SECTION_CONCEPTS if is_compact_result else LEGACY_RESULT_REQUIRED
+        matched = {
+            concept for concept, aliases in concepts.items() if has_section_alias(sections, aliases)
+        }
+        for concept in sorted(set(concepts) - matched):
+            problems.append(f"{rel(result_path, root)} missing required concept: {concept}")
+        if is_compact_result and compact_result_decision(result_text) is None:
+            problems.append(
+                f"{rel(result_path, root)} decision must be exactly GO, PIVOT, STOP, or INCONCLUSIVE"
+            )
         if args.strict and warnings:
             problems.extend(warnings)
 
@@ -1055,19 +1039,15 @@ def cmd_prompt_check(args: argparse.Namespace) -> int:
         warnings.append(f"prompt contains {task_count} numbered tasks; recommended maximum is {args.max_tasks}")
 
     expected_groups = [
-        {"任务背景", "项目背景"},
-        {"任务目标", "本轮目标"},
-        {"论文主线贡献", "主线贡献", "科学贡献"},
-        {"实验层级与规模依据", "证据层级与规模", "规模依据"},
-        {"具体要求", "总体要求"},
-        {"预期输出", "预期 result", "预期 result 内容"},
+        {"科学决策"},
+        {"最小充分工作"},
+        {"实验层级与规模"},
+        {"判据"},
+        {"产物"},
     ]
     for aliases in expected_groups:
         if not has_section_alias(sections, aliases):
             warnings.append(f"missing recommended section concept: {'/'.join(sorted(aliases))}")
-    if not has_section_alias(sections, {"暂不执行", "执行边界"}):
-        warnings.append("missing execution boundary section: 暂不执行/执行边界")
-
     print("prompt-check: ok" if not (args.strict and warnings) else "prompt-check: failed")
     print(f"path: {rel(prompt_path, root)}")
     print(f"size: {format_bytes(size)}")
@@ -1328,8 +1308,8 @@ def build_parser() -> argparse.ArgumentParser:
     prompt_check = subparsers.add_parser("prompt-check", help="check prompt scope and required concepts")
     add_target(prompt_check)
     prompt_check.add_argument("--round", type=int, required=True, help="round number")
-    prompt_check.add_argument("--max-bytes", type=int, default=12_000, help="recommended maximum prompt size")
-    prompt_check.add_argument("--max-tasks", type=int, default=5, help="recommended maximum numbered tasks")
+    prompt_check.add_argument("--max-bytes", type=int, default=6_000, help="recommended maximum prompt size")
+    prompt_check.add_argument("--max-tasks", type=int, default=3, help="recommended maximum numbered tasks")
     prompt_check.add_argument("--strict", action="store_true", help="fail on warnings")
     prompt_check.set_defaults(func=cmd_prompt_check)
 

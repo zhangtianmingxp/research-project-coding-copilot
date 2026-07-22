@@ -1,6 +1,6 @@
 ---
 name: research-project-coding-copilot
-description: "Use when the user wants a publication-first, interactive Codex or Claude Code workflow for long-running research coding projects: initialize from a markdown research plan, select paper-critical tasks, generate promptn.md files, execute approved prompts, write resultn.md files, and stop between rounds. It separates engineering smoke tests from scientifically informative and paper-grade experiments, and is human-controlled rather than a fully autonomous agent."
+description: "Use when the user wants a publication-first, interactive Codex or Claude Code workflow for long-running research coding projects: initialize from a markdown research plan, run focused 1-3 round quick validations with GO/PIVOT/STOP/INCONCLUSIVE decisions, generate compact promptn.md/resultn.md files, and maintain a lightweight paper_map.md. Human-controlled, not a fully autonomous agent."
 metadata:
   short-description: Publication-first research coding workflow
 ---
@@ -49,6 +49,8 @@ The user does not need to restate safety clauses such as "do not execute" or "do
 | `整理项目计划书：...` | Synthesize `project_plan.md` from an existing repository plus the user's interpretation |
 | `项目体检` | Run read-only context, structure, plan, and preflight checks |
 | `状态` | Report current round, phase, and next valid action |
+| `快速验证：...` | Draft the first compact prompt for one claim and one decisive comparison; use at most 1-3 rounds |
+| `继续快速验证` | Draft only the next focused prompt after an INCONCLUSIVE quick-validation result, up to round 3 |
 | `生成下一轮` or `下一轮` | Generate only the next prompt and stop for review |
 | `修改当前 prompt：...` | Revise only the current prompt and stop |
 | `执行当前轮` | Execute the latest current prompt, validate work, write the matching result, and stop |
@@ -157,7 +159,7 @@ python scripts/research_copilot.py adopt --target . --dry-run
 
 2. Check that the detected project plan, rules, context rules, docs directory, environment docs, and current round are unambiguous.
 3. When the user said `接管项目`, run `adopt` without `--dry-run` in the same turn if detection is unambiguous. The command already authorizes this non-destructive adoption, so do not ask for duplicate confirmation.
-4. Add only `.research_agent` state/profile files and the local helper. Preserve existing `AGENTS.md`, project rules, plans, and documentation. Repeated adoption also preserves the existing profile and progress unless the user explicitly requests `--refresh-state`.
+4. Add only `.research_agent` state/profile files, the local helper, and `paper_map.md` when missing. Preserve existing `AGENTS.md`, project rules, plans, documentation, and any existing `paper_map.md`. Repeated adoption also preserves the existing profile and progress unless the user explicitly requests `--refresh-state`.
 5. Use `PROJECT_PLAN*.md` or a configured plan path when `project_plan.md` is not present. Stop and explain only when multiple candidates or conflicting rules make the target genuinely ambiguous.
 
 If the user only wants to inspect readiness, run:
@@ -202,8 +204,8 @@ python scripts/research_copilot.py preflight --target .
 If `plan-check` reports missing content, template placeholders, or an obviously underspecified plan, stop and direct the user to write the plan or use `生成项目计划书：...` / `整理项目计划书：...`. Do not draft a formal prompt unless the user explicitly chooses the exceptional `--allow-incomplete-plan` override.
 
 2. Read `.research_agent/AGENTS.md`, relevant sections of `PROJECT_RULES.md`, `project_plan.md`, `.research_agent/project_state.md`, and recent relevant `ans_qes/result*.md` files only as needed.
-3. Determine whether the round is an engineering smoke check, a scientifically informative experiment, or a paper-grade run. State its paper contribution, evidence tier, dataset scale, scale rationale, and promotion/stop criterion. Tiny smoke data may verify code paths only; it cannot support method ranking, effect claims, biological interpretation, or a decision to abandon a research direction.
-4. Check the latest relevant rounds for stalled progression. Do not generate another small pilot merely because it is cheaper when the same code path has already passed smoke validation.
+3. Keep the prompt compact. It must contain only these sections: `科学决策`, `最小充分工作`, `实验层级与规模`, `判据`, and `产物`. Do not repeat global project, Git, safety, context, or engineering rules inside each prompt.
+4. Define one claim, one decisive comparison, the minimum decision-grade scale, and explicit GO/PIVOT/STOP/INCONCLUSIVE criteria. Tiny smoke data may verify code paths only and cannot support a scientific decision.
 5. Create or scaffold the prompt with:
 
 ```bash
@@ -227,7 +229,7 @@ Use this when the user says `执行当前轮`, asks to execute the current promp
 4. Reuse prior smoke evidence when the code path and inputs are materially unchanged. Do not require a new tiny pilot before every formal run.
 5. Execute only that round's task. Estimate cost/scale, cache external API outputs, record the runtime environment, and make long jobs resumable when relevant.
 6. Run focused, risk-proportionate checks. Do not add unrelated tests or repeatedly investigate issues that cannot affect the central result.
-7. Write `ans_qes/resultn.md`, explicitly separating engineering validity from scientific evidence and stating whether the scale can support any claim.
+7. Write a compact `ans_qes/resultn.md` containing only: `完成内容`, `关键证据`, `决策`, `Claim 边界`, `产物与命令`, and `下一项最高价值工作`. The decision must be exactly GO, PIVOT, STOP, or INCONCLUSIVE.
 8. Validate and mark the result:
 
 ```bash
@@ -237,6 +239,21 @@ python scripts/research_copilot.py result-check --target . --round N --mark-exec
 9. Stop and wait for user review. Do not generate `prompt{n+1}.md`.
 
 If `resultn.md` already exists, do not overwrite it unless the user explicitly asks.
+
+## Quick Validation Mode
+
+Use this when the user says `快速验证：<claim or question>`.
+
+1. Select exactly one claim and one decisive comparison.
+2. Use the smallest scientifically decision-grade scale, never a convenience-scale smoke substitute.
+3. Plan at most 1-3 prompt/result rounds. The first command drafts only the first prompt and stops for review.
+4. End each executed round with exactly one decision:
+   - `GO`: the criterion is met; continue the claim or prepare paper-grade validation;
+   - `PIVOT`: the claim remains valuable, but change the comparison, method, or hypothesis;
+   - `STOP`: adequate decision-grade evidence fails the criterion or reveals fatal infeasibility;
+   - `INCONCLUSIVE`: evidence is insufficient or ambiguous; name the single missing piece that could resolve it.
+5. `GO`, `PIVOT`, and `STOP` end the quick validation. After `INCONCLUSIVE`, `继续快速验证` may draft one focused next prompt if fewer than 3 rounds have been used. At round 3, stop even if the decision remains INCONCLUSIVE.
+6. Do not create a separate quick-validation registry or state file. Infer the sequence from the compact prompts/results.
 
 ## When The User Asks To Continue N Rounds
 
@@ -278,6 +295,19 @@ python scripts/research_copilot.py checkpoint --target . --start-round A --end-r
 ```
 
 Synthesize it into a compact Chinese summary containing stable conclusions, negative results, interpretation limits, key artifacts, decisions, claim-to-evidence links, and unresolved questions. Prefer this checkpoint plus the latest 1-3 results over rereading the full history.
+
+## Paper Evidence Map
+
+Use only the root `paper_map.md`; do not create additional claim, experiment, figure, or evidence registries.
+
+Update it only when:
+
+- a decision-grade result appears;
+- a claim changes;
+- a claim is about to move to paper-grade validation;
+- manuscript writing begins.
+
+Do not update it after routine engineering, smoke, documentation, or inconclusive maintenance work. Keep one row per claim with: Claim, decisive experiment, current evidence, status, target figure/table, and missing evidence.
 
 ## GitHub History Recommendation
 

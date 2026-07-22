@@ -31,17 +31,11 @@ result2_任务短名.md
 ```markdown
 # Prompt n
 
-## 任务标题
-
-## 任务背景
-
-## 任务目标
-
-## 具体要求
-
-## 预期输出
-
-## 暂不执行
+## 科学决策
+## 最小充分工作
+## 实验层级与规模
+## 判据
+## 产物
 ```
 
 ## 执行并生成 resultn.md
@@ -53,22 +47,15 @@ result2_任务短名.md
 ```markdown
 # Result n
 
-## 对应 Prompt
-
-## 执行摘要
-
 ## 完成内容
-
-## 涉及文件
-
-## 命令记录
-
-## 验证情况
-
-## 风险与注意事项
-
-## 后续建议
+## 关键证据
+## 决策
+## Claim 边界
+## 产物与命令
+## 下一项最高价值工作
 ```
+
+`决策` 只能是 GO、PIVOT、STOP 或 INCONCLUSIVE。全局规则保留在 `AGENTS.md`、`.research_agent/AGENTS.md` 和 `PROJECT_RULES.md`，不在每轮 prompt/result 中重复。
 
 ## 语言
 

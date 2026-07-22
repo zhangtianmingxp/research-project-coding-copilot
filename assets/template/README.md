@@ -37,6 +37,8 @@ $research-project-coding-copilot 整理项目计划书：结合当前仓库内�
 | `状态` | 检查当前轮次和下一步 |
 | `生成项目计划书：...` | 根据研究想法生成或完善计划书 |
 | `整理项目计划书：...` | 结合已有仓库和用户理解整理计划书 |
+| `快速验证：...` | 用一个决定性比较快速判断一个 claim，最多 1-3 轮 |
+| `继续快速验证` | 上一轮为 INCONCLUSIVE 时继续一轮，最多到第 3 轮 |
 | `生成下一轮` | 生成下一轮 prompt，然后等待审查 |
 | `执行当前轮` | 执行当前 prompt，验证并生成对应 result |
 | `继续 N 轮` | 连续生成并执行 N 轮，然后停止 |
@@ -45,4 +47,4 @@ $research-project-coding-copilot 整理项目计划书：结合当前仓库内�
 
 每轮 result 生成并审查通过后，建议用户自行把本轮代码、prompt、result 和必要文档提交并推送到 GitHub 一次，再开始下一轮。skill 不执行 `git add`、`git commit` 或 `git push`。
 
-详细科研工程规则见 `PROJECT_RULES.md`，工作流状态见 `.research_agent/project_state.md`，每轮记录保存在 `ans_qes/`。
+详细科研工程规则见 `PROJECT_RULES.md`，工作流状态见 `.research_agent/project_state.md`，每轮记录保存在 `ans_qes/`。论文 claim 的轻量证据状态只记录在 `paper_map.md`。

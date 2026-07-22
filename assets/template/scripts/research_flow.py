@@ -61,6 +61,7 @@ def required_paths() -> list[Path]:
         ROOT / "PROJECT_RULES.md",
         ROOT / "project_plan.md",
         ROOT / "README.md",
+        ROOT / "paper_map.md",
         ANS_DIR / "README.md",
         AGENT_DIR / "AGENTS.md",
         AGENT_DIR / "config.yaml",

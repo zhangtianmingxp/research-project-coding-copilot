@@ -49,6 +49,8 @@ $research-project-coding-copilot 生成下一轮
 | `整理项目计划书：...` | 结合已有仓库内容和用户补充理解整理 `project_plan.md` |
 | `项目体检` | 只读检查项目结构、轮次、Git、敏感文件和运行环境 |
 | `状态` | 显示当前轮次、阶段和下一步 |
+| `快速验证：...` | 围绕一个 claim 和一个决定性比较生成首轮紧凑 prompt，最多 1-3 轮 |
+| `继续快速验证` | 上一轮为 INCONCLUSIVE 时生成下一轮紧凑 prompt，最多到第 3 轮 |
 | `生成下一轮` | 生成下一个 `promptN`，等待审查 |
 | `修改当前 prompt：...` | 按反馈修改当前 prompt，不执行 |
 | `执行当前轮` | 执行当前 prompt，测试并生成同轮 `resultN` |
@@ -70,6 +72,10 @@ $research-project-coding-copilot 生成下一轮
 `继续 N 轮` 是唯一的多轮模式。它最多执行指定轮数，并在测试失败、科研判断不明确、数据泄漏风险、敏感文件风险、破坏性操作或外部凭据缺失时提前停止。
 
 任何模式都不会自行无限循环。skill 不执行 `git add`、`git commit` 或 `git push`。
+
+快速验证模式只回答一个科学决策：一个 claim、一个决定性比较、一个最小决策级规模，并在 1-3 轮内给出 `GO`、`PIVOT`、`STOP` 或 `INCONCLUSIVE`。Prompt 和 Result 不再重复全局规则，只保留决策所需字段。
+
+根目录只维护一个轻量论文证据表 `paper_map.md`。它不要求每轮更新，只在出现决策级结果、claim 改变、准备升级到 paper-grade 或开始写论文时更新。
 
 ## 推荐的 GitHub 记录习惯
 

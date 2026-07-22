@@ -62,6 +62,8 @@ The user can control the workflow with concise commands. Guardrails are implicit
 - `整理项目计划书：...`: synthesize a project plan from an existing repository and the user's interpretation.
 - `项目体检`: run read-only readiness checks.
 - `状态`: report current state and next action.
+- `快速验证：...`: draft the first compact prompt for one claim and one decisive comparison; use at most 1-3 rounds.
+- `继续快速验证`: after an INCONCLUSIVE result, draft the next focused prompt if fewer than 3 rounds have been used.
 - `生成下一轮` or `下一轮`: generate the next prompt only.
 - `执行当前轮`: execute the current prompt and write the matching result only.
 - `继续 N 轮`: generate and execute at most N rounds, then stop.
@@ -79,7 +81,7 @@ Do not force mature repositories into the default template names. Detect and rec
 - runtime environment documents;
 - titled or plain prompt/result naming.
 
-Preserve existing rules and plans. Install only missing workflow-control files.
+Preserve existing rules, plans, and any existing `paper_map.md`. Install only missing workflow-control files plus the single lightweight `paper_map.md`.
 
 ## Project Plan Prerequisite
 
@@ -148,17 +150,15 @@ Do not move from `result_reviewed` to a new prompt automatically.
 
 ## Prompt Generation
 
-Generate a prompt only when the user asks. A good `promptn.md` includes:
+Generate a prompt only when the user asks. Keep `promptn.md` to exactly these sections:
 
-- task title
-- project context
-- current progress
-- relevant `PROJECT_RULES.md` constraints
-- concrete goals
-- implementation requirements
-- expected outputs
-- checks/tests
-- explicit instruction not to execute yet
+- `科学决策`
+- `最小充分工作`
+- `实验层级与规模`
+- `判据`
+- `产物`
+
+Do not repeat global project, safety, Git, context, or engineering rules inside each prompt.
 
 After writing the prompt, update state and stop.
 
@@ -166,21 +166,26 @@ Run `prompt-check` before execution. A large prompt with many independent tasks 
 
 ## Prompt Execution
 
-Execute only when the user explicitly says to execute a specific prompt. The resulting `resultn.md` should include:
+Execute only when the user explicitly says to execute a specific prompt. Keep `resultn.md` to exactly these sections:
 
-- corresponding prompt path
-- execution summary
-- completed work
-- changed files
-- commands run
-- verification
-- risks and limitations
-- whether relevant `PROJECT_RULES.md` constraints were satisfied
-- next-step ideas without starting the next prompt
+- `完成内容`
+- `关键证据`
+- `决策`
+- `Claim 边界`
+- `产物与命令`
+- `下一项最高价值工作`
+
+The decision must be exactly GO, PIVOT, STOP, or INCONCLUSIVE.
 
 After writing the result, update state and stop.
 
-Result validation is concept-based. Accept project-specific headings such as `本轮目的`, `核心数值`, `QC 结果`, and `解释边界` when they satisfy the same semantic requirements as the default template.
+Legacy results remain readable, but newly generated results use the compact structure above.
+
+## Quick Validation
+
+Quick validation uses one claim, one decisive comparison, one minimum decision-grade scale, and at most 1-3 rounds. GO, PIVOT, or STOP ends it. INCONCLUSIVE may continue only to resolve one named missing evidence item, and round 3 always ends the quick validation.
+
+Do not create a quick-validation registry. Use only root `paper_map.md` for paper evidence, and update it only for a decision-grade result, claim change, paper-grade promotion, or manuscript writing.
 
 ## Long-Running And External Work
 

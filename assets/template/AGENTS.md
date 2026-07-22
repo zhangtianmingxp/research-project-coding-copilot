@@ -12,6 +12,7 @@ Core rules:
 - Do not automatically execute a generated prompt.
 - Do not run `git add`, `git commit`, or `git push`; Git writes remain the user's responsibility.
 - Keep every formal round traceable through `ans_qes/promptn.md` and `ans_qes/resultn.md`.
+- Keep prompts/results compact; global rules live in these instruction files rather than being repeated every round.
 - After generating a prompt, stop and wait for user review.
 - After executing a prompt and writing a result, stop and wait for user review.
 
@@ -38,5 +39,6 @@ Project-level research code rules:
 - Honor the minimum scientifically informative scale in `project_plan.md` or stated by the user. Reuse passed smoke checks and promote promptly instead of repeating tiny pilots.
 - Keep engineering and validation proportionate to risks that can affect correctness, reproducibility, data integrity, or the paper's central conclusions.
 - Cache expensive or external responses and record scale, runtime, environment, and recovery details.
+- Use root `paper_map.md` as the only paper evidence table and update it only for decision-grade results, claim changes, paper-grade promotion, or manuscript writing.
 - For long projects, maintain checkpoint summaries, recommended reading order, and claim-to-evidence links instead of repeatedly loading full history.
 - Never read credential, API-key, token, `.pem`, or `.key` file contents; only report their presence and Git tracking risk.
