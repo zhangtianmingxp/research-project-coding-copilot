@@ -1,8 +1,8 @@
 ---
 name: research-project-coding-copilot
-description: "Use when the user wants an interactive Codex or Claude Code workflow for long-running research coding projects: initialize a project template from a markdown research plan, generate promptn.md files, wait for user approval, execute approved prompts, write resultn.md files, and stop between rounds. This skill is for human-controlled research project progression, not a fully autonomous agent."
+description: "Use when the user wants a publication-first, interactive Codex or Claude Code workflow for long-running research coding projects: initialize from a markdown research plan, select paper-critical tasks, generate promptn.md files, execute approved prompts, write resultn.md files, and stop between rounds. It separates engineering smoke tests from scientifically informative and paper-grade experiments, and is human-controlled rather than a fully autonomous agent."
 metadata:
-  short-description: Interactive research coding workflow
+  short-description: Publication-first research coding workflow
 ---
 
 # Research Project Coding Copilot
@@ -20,6 +20,22 @@ project_plan.md -> ans_qes/promptn.md -> user review -> execute -> ans_qes/resul
 ```
 
 Never advance to the next phase without a clear user instruction.
+
+## Publication-First Decision Rule
+
+Treat the paper's central question and evidence chain as the optimization target. Engineering quality is necessary infrastructure, not the default source of new rounds.
+
+Before drafting the next prompt:
+
+1. Identify the central claim or paper-critical uncertainty advanced by the round.
+2. Prefer work that produces decision-grade evidence, unlocks a named blocker to that evidence, or strengthens a reviewer-relevant weakness.
+3. Do not spend repeated rounds on contracts, schemas, refactors, documentation, extra validation, or tiny reruns unless they block correctness, reproducibility, data integrity, or the next scientifically informative experiment.
+4. If two consecutive rounds are mainly engineering or smoke validation, make the next round advance a scientific analysis at an adequate scale unless a concrete blocker makes that impossible. State the blocker and the evidence needed to clear it.
+5. Use CNS or strong field-leading journal review standards as an ambition benchmark when requested: prioritize novelty, scientific importance, rigorous statistics, robustness, generalization, mechanism, and a coherent claim-to-figure story. Do not claim that any workflow guarantees publication.
+
+Honor scale requirements from the user and project plan. If the project states that at least 500 cells, multiple cohorts, a full chromosome set, or another minimum is needed to distinguish effects, treat that as the minimum for scientific inference. Never replace it with a convenient tiny subset.
+
+For repositories initialized with an older version of this skill, interpret legacy unconditional `pilot-first` wording through the tiered rules in this file: it authorizes an engineering smoke only for a new or materially changed failure mode and never overrides an explicit scientifically informative minimum. Preserve project-owned files unless the user asks to migrate them.
 
 ## Short Command Contract
 
@@ -113,6 +129,8 @@ In target repositories initialized by this skill, `PROJECT_RULES.md` is the dura
 - read only the relevant section unless the task requires a broader audit;
 - preserve project rigor even when keeping context small.
 
+Use proportionate engineering: implement and test what is needed to make the scientific result trustworthy, but do not let optional architecture polish, exhaustive defensive checks, or documentation completeness displace the paper's critical path.
+
 ## When Initializing A Repository
 
 Use this when the user asks to create, install, scaffold, or apply the research workflow template.
@@ -184,15 +202,17 @@ python scripts/research_copilot.py preflight --target .
 If `plan-check` reports missing content, template placeholders, or an obviously underspecified plan, stop and direct the user to write the plan or use `生成项目计划书：...` / `整理项目计划书：...`. Do not draft a formal prompt unless the user explicitly chooses the exceptional `--allow-incomplete-plan` override.
 
 2. Read `.research_agent/AGENTS.md`, relevant sections of `PROJECT_RULES.md`, `project_plan.md`, `.research_agent/project_state.md`, and recent relevant `ans_qes/result*.md` files only as needed.
-3. Create or scaffold the prompt with:
+3. Determine whether the round is an engineering smoke check, a scientifically informative experiment, or a paper-grade run. State its paper contribution, evidence tier, dataset scale, scale rationale, and promotion/stop criterion. Tiny smoke data may verify code paths only; it cannot support method ranking, effect claims, biological interpretation, or a decision to abandon a research direction.
+4. Check the latest relevant rounds for stalled progression. Do not generate another small pilot merely because it is cheaper when the same code path has already passed smoke validation.
+5. Create or scaffold the prompt with:
 
 ```bash
 python scripts/research_copilot.py draft-prompt --target . --round N --title "..." --focus "..."
 ```
 
-4. Edit the generated `ans_qes/promptn.md` into a high-quality Chinese task prompt using the project plan and current progress.
-5. Run `prompt-check --round N`. Split prompts that are too broad, contain too many independent tasks, or exceed the configured size guideline.
-6. Stop and wait for user review. Do not execute the prompt.
+6. Edit the generated `ans_qes/promptn.md` into a high-quality Chinese task prompt using the project plan and current progress.
+7. Run `prompt-check --round N`. Split prompts that are too broad, contain too many independent tasks, or exceed the configured size guideline.
+8. Stop and wait for user review. Do not execute the prompt.
 
 ## When Executing `promptn.md`
 
@@ -200,17 +220,21 @@ Use this when the user says `执行当前轮`, asks to execute the current promp
 
 1. Read the specified `ans_qes/promptn.md` and relevant sections of `PROJECT_RULES.md`.
 2. Run `preflight --round N` before expensive, external-API, data-processing, or long-running work.
-3. Use pilot-first execution. Estimate cost/scale, cache external API outputs, record the runtime environment, and make long jobs resumable when relevant.
-4. Execute only that round's task.
-5. Run focused checks/tests appropriate to the changes.
-6. Write `ans_qes/resultn.md`.
-7. Validate and mark the result:
+3. Use tiered validation:
+   - engineering smoke/dry-run: the smallest data needed to catch interface, parsing, shape, dependency, and runtime failures; make no scientific inference;
+   - decision-grade experiment: the minimum scientifically informative scale defined by the plan, user, heterogeneity, split design, expected effect, and uncertainty;
+   - paper-grade run: the full planned scale, replicates/seeds, strict splits, uncertainty analysis, robustness checks, and external or orthogonal validation relevant to the claim.
+4. Reuse prior smoke evidence when the code path and inputs are materially unchanged. Do not require a new tiny pilot before every formal run.
+5. Execute only that round's task. Estimate cost/scale, cache external API outputs, record the runtime environment, and make long jobs resumable when relevant.
+6. Run focused, risk-proportionate checks. Do not add unrelated tests or repeatedly investigate issues that cannot affect the central result.
+7. Write `ans_qes/resultn.md`, explicitly separating engineering validity from scientific evidence and stating whether the scale can support any claim.
+8. Validate and mark the result:
 
 ```bash
 python scripts/research_copilot.py result-check --target . --round N --mark-executed
 ```
 
-8. Stop and wait for user review. Do not generate `prompt{n+1}.md`.
+9. Stop and wait for user review. Do not generate `prompt{n+1}.md`.
 
 If `resultn.md` already exists, do not overwrite it unless the user explicitly asks.
 
@@ -241,6 +265,7 @@ python scripts/research_copilot.py result-check --target . --round n --mark-exec
    - a large data/model/checkpoint/secret-risk change appears;
    - the task would require external credentials or destructive changes;
    - context needed becomes too broad for low-context mode.
+   - another engineering-only or tiny-smoke round would not remove a concrete blocker or advance paper-level evidence.
 5. Do not run Git write operations. Remind the user that each reviewed round can be manually committed and pushed to GitHub to preserve history.
 6. Never continue beyond N rounds without a new user instruction.
 

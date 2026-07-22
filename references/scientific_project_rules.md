@@ -16,6 +16,21 @@ All code, experiments, documentation, and results should support:
 - long-term maintenance
 - publication-quality evidence
 
+## Publication-First Prioritization
+
+- Optimize for the central scientific question, claim-to-evidence chain, and paper narrative rather than maximum engineering completeness.
+- Treat engineering as enabling work. Add architecture, tests, schemas, contracts, and documentation when they protect correctness, reproducibility, data integrity, or a paper-critical analysis.
+- Prefer a scientifically informative experiment over optional refactoring or another convenience-scale rerun once the relevant code path works.
+- Before starting a round, state which central claim, decisive uncertainty, figure/table, or named blocker it advances.
+- If two consecutive rounds are mainly engineering or smoke validation, the next round should normally produce decision-grade scientific evidence. Continue engineering only when a concrete blocker is documented.
+- When aiming at CNS or strong field-leading journals, prioritize conceptual novelty, broad significance, rigorous controls, generalization, mechanistic depth, uncertainty, and a coherent story. Do not confuse codebase sophistication with scientific impact.
+
+Triage issues before opening follow-up work:
+
+- **claim blocker**: can change data validity, leakage, metrics, statistical inference, central figures, or reproducibility of a key result; fix before relying on the result;
+- **material but non-blocking**: useful for robustness, maintenance, or reviewer response but does not invalidate the current conclusion; record and schedule against paper priorities;
+- **incidental**: cosmetic, speculative, rare, or unable to affect the central evidence; note it briefly and continue without repeated experiments.
+
 ## Engineering Principles
 
 - Do not turn core workflows into one-off scripts.
@@ -26,6 +41,7 @@ All code, experiments, documentation, and results should support:
 - Use clear module, function, and class names.
 - Use logs, controllable random seeds, traceable outputs, and useful error messages.
 - Add tests or validation checks for core behavior.
+- Avoid speculative abstractions, exhaustive edge-case handling, and broad test expansion that do not protect a current or near-term paper-critical workflow.
 
 ## Data And Benchmark Discipline
 
@@ -37,10 +53,20 @@ All code, experiments, documentation, and results should support:
 - Benchmarks must use comparable splits, inputs, preprocessing, metrics, and evaluation settings.
 - Mark external data, pretrained weights, or extra information clearly.
 
-## Pilot, Runtime, And External Services
+## Validation Tiers, Scale, Runtime, And External Services
 
-- Run a small pilot or dry-run before large-scale experiments.
-- Estimate runtime, input scale, storage, API requests, and likely cost before promotion to a formal run.
+Classify every data/model experiment before execution:
+
+1. **Engineering smoke/dry-run**: use the smallest useful input to detect parsing, interface, shape, dependency, logging, and runtime failures. It provides no evidence about effect size, model ranking, biological significance, robustness, or whether a research direction works.
+2. **Decision-grade experiment**: use the minimum scientifically informative scale needed to compare methods or estimate an effect with the required heterogeneity, split structure, replication, and uncertainty. Derive this scale from the project plan, user/domain knowledge, prior variance, or power analysis, not convenience.
+3. **Paper-grade run**: use the planned full dataset and reviewer-relevant seeds/replicates, strict splits, uncertainty estimates, robustness checks, and external or orthogonal validation.
+
+- Honor an explicit minimum scale from the user or project plan. For example, if 500 cells are required to distinguish effects, 20 cells may be a smoke test but cannot be a decision-grade substitute.
+- Run a new smoke test only for a new or materially changed failure mode. Reuse prior smoke evidence when the code path and input contract are unchanged.
+- Promote promptly after smoke QC passes. Do not accumulate a series of tiny pilots, contract-polishing rounds, or exploratory model comparisons on underpowered data.
+- A small pilot may justify fixing the pipeline; it may not justify selecting the best model, rejecting a hypothesis, freezing a biological conclusion, or redirecting the paper.
+- Treat unconditional `pilot-first` language in older repository templates as legacy wording governed by these tiers, not as a requirement to repeat tiny experiments.
+- Estimate runtime, input scale, storage, API requests, and likely cost before a decision-grade or paper-grade run.
 - Cache external API/model responses with request parameters, model/version identifiers, and timestamps.
 - Make long-running jobs resumable and emit stage-level progress.
 - Maintain a concise runtime environment document with the preferred environment and verified critical packages.
@@ -69,6 +95,7 @@ All code, experiments, documentation, and results should support:
 - README files should help new contributors understand project goals, data, environment setup, minimal pipeline, reproduction, and extension.
 - Mature projects should maintain a current research summary, recommended reading order, workflow checkpoints, figure/table inventory, and claim-to-evidence map.
 - Lock central claims only when their supporting metrics, robustness checks, figures, and interpretation boundaries are traceable.
+- Label every reported result as smoke-only, decision-grade, or paper-grade. State the sample size, independent experimental units, split/replicate design, and what claims the scale does and does not support.
 
 ## Markdown Documentation Language
 
@@ -97,18 +124,17 @@ The skill does not perform Git writes. After each reviewed round, recommend that
 
 ## Development Priority
 
-Prefer this order unless the user specifies otherwise:
+Prioritize by the paper's critical path rather than a fixed engineering maturity ladder:
 
-1. data format standardization
-2. reproducible pipelines
-3. statistical baselines
-4. strong machine learning baselines
-5. strict benchmark and split discipline
-6. interpretability
-7. advanced deep learning or graph models
-8. foundation model transfer
-9. biological or scientific case studies
-10. paper-ready figures and documentation
+1. define the central question, candidate claims, decisive comparisons, and evidence thresholds;
+2. remove only the data or pipeline blockers needed for those comparisons;
+3. run decision-grade baselines and analyses at a scientifically informative scale;
+4. strengthen promising claims with strict splits, uncertainty, ablation, controls, replication, and external validation;
+5. add advanced models only when they test a scientific hypothesis or plausibly improve a paper-critical result;
+6. build mechanism/case-study analyses and the claim-to-figure story;
+7. harden, document, and package the workflows needed to reproduce the final evidence.
+
+Do not postpone scientifically informative runs until the repository reaches an imagined state of complete engineering polish.
 
 ## Low-Token Work Mode
 

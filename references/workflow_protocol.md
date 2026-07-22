@@ -186,12 +186,13 @@ Result validation is concept-based. Accept project-specific headings such as `æœ
 
 Before expensive data processing, model inference, or external API calls:
 
-1. Run a small pilot or dry-run.
-2. Estimate input scale, runtime, API requests, and storage.
-3. Record environment and dependency versions.
-4. Cache external responses and make work resumable.
-5. Keep credentials outside tracked files and never read them into model context.
-6. Promote to a formal run only after pilot QC passes.
+1. Classify the run as engineering smoke, decision-grade, or paper-grade.
+2. Run a small smoke/dry-run only when the code path, input contract, environment, or failure mode is new or materially changed.
+3. Treat smoke output as engineering evidence only. Do not use it to rank methods, infer an effect, reject a hypothesis, or change the paper direction.
+4. Set decision-grade scale from the project plan, user/domain minimum, heterogeneity, split design, expected effect, and uncertainty. Never shrink an explicit minimum merely for convenience.
+5. Reuse prior smoke QC and promote promptly to the scientifically informative or formal scale.
+6. Estimate input scale, runtime, API requests, and storage; record environment and dependency versions.
+7. Cache external responses, make work resumable, and keep credentials outside tracked files and model context.
 
 ## History Compaction And Evidence
 

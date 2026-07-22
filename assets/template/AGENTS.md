@@ -18,6 +18,7 @@ Core rules:
 Scientific project principles:
 
 - Treat downstream repositories as formal research projects, not demos.
+- Put the paper's central question, claim-to-evidence chain, and scientifically informative scale ahead of optional engineering completeness.
 - Prefer reproducible, modular, maintainable code.
 - Keep data processing, feature construction, modeling, evaluation, interpretation, and visualization decoupled.
 - Avoid hard-coded paths and one-off scripts.
@@ -33,6 +34,9 @@ Project-level research code rules:
 - Read it with low-context discipline: use `rg` to find relevant sections, then inspect bounded excerpts.
 - Do not bypass reproducibility, leakage checks, benchmark fairness, interpretability, documentation, or logging requirements merely to finish a round quickly.
 - Newly generated explanatory Markdown documents should default to Chinese unless the user, publication target, or collaborator context requires English.
-- Use pilot-first for large experiments, expensive inference, and external API calls. Cache responses and record runtime/environment details.
+- Separate engineering smoke tests from decision-grade and paper-grade experiments. Smoke tests only verify code paths and must not support scientific claims.
+- Honor the minimum scientifically informative scale in `project_plan.md` or stated by the user. Reuse passed smoke checks and promote promptly instead of repeating tiny pilots.
+- Keep engineering and validation proportionate to risks that can affect correctness, reproducibility, data integrity, or the paper's central conclusions.
+- Cache expensive or external responses and record scale, runtime, environment, and recovery details.
 - For long projects, maintain checkpoint summaries, recommended reading order, and claim-to-evidence links instead of repeatedly loading full history.
 - Never read credential, API-key, token, `.pem`, or `.key` file contents; only report their presence and Git tracking risk.

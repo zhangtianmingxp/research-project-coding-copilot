@@ -102,9 +102,12 @@ prompt_drafted -> prompt_approved -> executed
 2. 用 `rg` 定位并读取 `PROJECT_RULES.md` 中与本轮任务相关的章节。
 3. 读取 `.research_agent/project_state.md` 和 `.research_agent/progress.json`。
 4. 检查 `ans_qes/` 中已有 prompt/result 编号。
-5. 生成指定或下一个编号的 `ans_qes/promptn.md`。
-6. 更新状态为 `prompt_drafted`。
-7. 停止并等待用户审查。
+5. 明确本轮推进的论文核心 claim、关键不确定性、目标 figure/table 或具体 blocker。
+6. 将实验标记为工程 smoke、科研决策级或论文级，并写明数据规模、独立样本单位、规模依据和升级/停止标准。
+7. 检查最近相关轮次。若连续两轮主要是工程补强或小规模 smoke，下一轮原则上必须进入足够规模的科研分析；只有明确 blocker 才可继续工程工作。
+8. 生成指定或下一个编号的 `ans_qes/promptn.md`。
+9. 更新状态为 `prompt_drafted`。
+10. 停止并等待用户审查。
 
 生成 prompt 时不得修改科研代码，不得生成 `resultn.md`。
 
@@ -117,7 +120,7 @@ prompt_drafted -> prompt_approved -> executed
 1. 读取对应 `ans_qes/promptn.md`。
 2. 读取 `PROJECT_RULES.md` 中与本轮任务相关的章节。
 3. 按 prompt 执行本轮任务。
-4. 运行必要检查或测试。
+4. 运行与风险相称的必要检查或测试，不为与论文主线无关的问题反复扩展验证。
 5. 生成或更新同编号 `ans_qes/resultn.md`，并记录是否满足相关项目规则。
 6. 更新状态为 `executed`。
 7. 停止并等待用户审查。
@@ -151,6 +154,10 @@ skill 不执行 `git add`、`git commit` 或 `git push`，Git 操作也不是本
 ## 6. 科研项目质量原则
 
 - 必须遵守 `PROJECT_RULES.md`。
+- 论文核心问题和证据链优先于工程完整度；工程工作必须服务于可信结果或解除明确 blocker。
+- 微型规模只能在适用时验证代码路径。若用户或计划书规定至少 500 cells 才能分辨效应，必须以 500 cells 作为科研推断下限。
+- 已通过的 smoke 不重复做；不得用低功效结果排序模型、否定假设、冻结科学结论或改变论文方向。
+- 遇到问题先判断它是否会改变数据、指标、统计推断、核心图表或关键结果复现。不会影响主线的偶发/外观问题只记录，不为其反复实验或单独占用 round。
 - 不把研究项目当 demo。
 - 避免一次性脚本成为核心流程。
 - 数据处理、特征、模型、评估、解释和可视化应保持模块边界。
