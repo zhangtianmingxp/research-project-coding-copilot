@@ -19,10 +19,12 @@ All code, experiments, documentation, and results should support:
 ## Publication-First Prioritization
 
 - Optimize for the central scientific question, claim-to-evidence chain, and paper narrative rather than maximum engineering completeness.
-- Treat engineering as enabling work. Add architecture, tests, schemas, contracts, and documentation when they protect correctness, reproducibility, data integrity, or a paper-critical analysis.
-- Prefer a scientifically informative experiment over optional refactoring or another convenience-scale rerun once the relevant code path works.
+- Optimize time to a scientific decision. Re-rank plausible data, baseline, candidate-model, experiment, analysis, and engineering actions after every result; do not automatically continue the deepest unfinished branch.
+- Once a valid target, split, and metric exist, build the shortest vertical slice containing a simple baseline, a serious candidate model, and a decision-grade comparison.
+- Treat engineering as enabling work. Before a route earns GO, use a traceable prototype and add only checks needed for valid data, leakage control, correct metrics, and a trustworthy central result.
 - Before starting a round, state which central claim, decisive uncertainty, figure/table, or named blocker it advances.
-- If two consecutive rounds are mainly engineering or smoke validation, the next round should normally produce decision-grade scientific evidence. Continue engineering only when a concrete blocker is documented.
+- Give an engineering blocker one focused repair attempt. If it remains unresolved, bypass it, simplify the experiment, change implementation, or mark the claim INCONCLUSIVE. Do not spend two consecutive formal rounds on engineering unless the blocker can invalidate central evidence and has no valid bypass.
+- Let code maturity follow evidence maturity: exploratory scripts/notebooks first, reproducible decision-grade commands next, and broader modularization/tests/docs only for surviving paper-grade paths.
 - When aiming at CNS or strong field-leading journals, prioritize conceptual novelty, broad significance, rigorous controls, generalization, mechanistic depth, uncertainty, and a coherent story. Do not confuse codebase sophistication with scientific impact.
 
 Triage issues before opening follow-up work:
@@ -31,16 +33,37 @@ Triage issues before opening follow-up work:
 - **material but non-blocking**: useful for robustness, maintenance, or reviewer response but does not invalidate the current conclusion; record and schedule against paper priorities;
 - **incidental**: cosmetic, speculative, rare, or unable to affect the central evidence; note it briefly and continue without repeated experiments.
 
+## Portfolio And Publication Harvest
+
+- Before opening a successor version, classify every deduplicated project family in the defined portfolio scope as WRITE_NOW, ONE_DECISIVE_EXPERIMENT, HOLD, or STOP.
+- Define a minimum publishable unit before classification: one bounded claim, decisive evidence, interpretation boundary, traceable target figure/table, unresolved validity gaps, and a realistic venue range.
+- WRITE_NOW requires decision-grade evidence, a defensible contribution for at least one realistic venue, and no unresolved validity blocker. Freeze new experiments and finish the submission; an aspirational venue must not delay a valid bounded paper.
+- ONE_DECISIVE_EXPERIMENT means exactly one named decision-grade comparison can change the submission decision. It must not conceal a prerequisite chain; prefer running it in the current repository, then reclassify.
+- HOLD means multiple material gaps, unavailable resources, or lower portfolio priority; name the condition for reconsideration. STOP means the current data/question cannot support a defensible minimum publishable unit.
+- These labels govern resource allocation and do not replace experiment-level GO/PIVOT/STOP/INCONCLUSIVE. Use HOLD with an explicit evidence caveat when the portfolio record is incomplete.
+- Return one compact read-only table and keep `paper_map.md` as the only evidence registry.
+
+## Cross-Version Portfolio Discipline
+
+- Treat versions that reuse the same dataset, outcome, and central question as one project family. A version label is not independent evidence.
+- Only after the harvest Gate returns ONE_DECISIVE_EXPERIMENT, summarize prior terminal decisions and root blockers from bounded final-result, checkpoint, plan, and `paper_map.md` evidence before proposing a separate successor repository.
+- Require new identifying information before restart: independent data/biological units, improved measurement resolution, a genuinely different estimand, orthogonal/external evidence, or an independently supported hypothesis established before inspecting the failed result.
+- Model, representation, threshold, seed, metric, subgroup, post-hoc label, or version changes alone do not justify another project. Do not launder a failed claim through narrower post-hoc framing.
+- Two STOPs caused by the same root blocker default to closure of that claim/data family. Three consecutive version-level STOPs in the same data/outcome family require a project-family GO/PIVOT/STOP/INCONCLUSIVE audit before any restart. Treat these as portfolio controls, not statistical thresholds; an override requires explicit user direction and documented new evidence.
+- Permit at most one post-STOP failure audit to identify the root blocker. It cannot rescue the closed claim or trigger recursive post-hoc versions.
+- Use the existing `paper_map.md` to record family blockers and evidence required for reopening. Do not create another registry.
+- Keep the plan centered on the current active Gate. Future locked Gates receive one-line placeholders and are expanded only after upstream evidence unlocks them; a roughly 300-nonblank-line/20-KB scope warning is advisory only.
+
 ## Engineering Principles
 
-- Do not turn core workflows into one-off scripts.
-- Keep stable logic in modular source code, not notebooks.
-- Keep data loading, feature construction, modeling, training, evaluation, interpretation, and visualization decoupled.
+- A clear one-script or notebook vertical slice is acceptable for initial scientific selection.
+- Move stable, repeated, or paper-grade logic into modular source code after the route earns continued investment.
+- Keep data loading, feature construction, modeling, training, evaluation, interpretation, and visualization decoupled in promoted core workflows.
 - Avoid hard-coded paths.
 - Separate configuration from code.
 - Use clear module, function, and class names.
 - Use logs, controllable random seeds, traceable outputs, and useful error messages.
-- Add tests or validation checks for core behavior.
+- Add direct validity checks during exploration; broaden tests only for reused or paper-critical behavior.
 - Avoid speculative abstractions, exhaustive edge-case handling, and broad test expansion that do not protect a current or near-term paper-critical workflow.
 
 ## Data And Benchmark Discipline
@@ -52,6 +75,18 @@ Triage issues before opening follow-up work:
 - For prediction tasks, prefer strict generalization splits over random-only splits when scientifically relevant.
 - Benchmarks must use comparable splits, inputs, preprocessing, metrics, and evaluation settings.
 - Mark external data, pretrained weights, or extra information clearly.
+
+## Bioinformatics Measurement Uncertainty And Success Criteria
+
+- Treat DNA/RNA sequencing, single-cell, ATAC-seq, Hi-C, and proteomics outputs as noisy, pipeline-dependent observations affected by depth, sparsity/dropout, batch, mapping/quantification, peak/contact calling, missingness, and dynamic range. Select only the checks relevant to the assay.
+- Name whether the target is a raw observation, processed quantity, or derived label. Unless orthogonal evidence supports more, claim prediction/explanation of that measurement rather than recovery of an error-free biological state.
+- Do not impose universal absolute metric cutoffs. Use a hard cutoff only when supported by the user, a domain standard, power analysis, or a genuinely comparable benchmark.
+- A peer benchmark is decision-grade only when dataset/cohort, split, inputs, preprocessing, and metric are sufficiently matched. Better performance or practical/statistical non-inferiority within uncertainty supports model viability. Parity alone still needs novelty, generalization, efficiency, interpretation, mechanism, or biological discovery for a paper-level contribution.
+- Treat partially comparable literature numbers as contextual ranges, not pass/fail criteria.
+- For a genuinely new task, use simple baselines, null/permutation or negative controls where applicable, repeat/seed or sample stability, uncertainty intervals, sensitivity analyses, and biological/orthogonal consistency. Do not invent a state-of-the-art threshold when none exists.
+- Use technical replicates, split-half reliability, cross-assay concordance, or known reproducibility to estimate/discuss a measurement ceiling when possible.
+- Choose INCONCLUSIVE when noise or uncertainty prevents distinguishing useful signal from failure. Choose STOP only when adequate evidence excludes a practically useful effect or reveals fatal invalidity.
+- Exploratory thresholds may change with documented reasons, but later held-out or confirmatory analysis must test the revised criterion. Never move a threshold post hoc merely to obtain GO.
 
 ## Validation Tiers, Scale, Runtime, And External Services
 
@@ -89,7 +124,7 @@ Classify every data/model experiment before execution:
 
 ## Results And Paper Readiness
 
-- Every figure, table, and reported number should be traceable to data, code, config, output file, and repository revision.
+- Every figure, table, and reported number should be traceable to data, code, config, output file, and a recorded code/version note when relevant.
 - Plotting scripts and result-generation scripts should be reproducible.
 - Important design decisions should be written into docs, not left only in chat history.
 - README files should help new contributors understand project goals, data, environment setup, minimal pipeline, reproduction, and extension.
@@ -113,26 +148,21 @@ Use English only when the user explicitly requests it, when a target journal/col
 - Error messages should explain what was expected and how to fix missing prerequisites.
 - Long-running commands must show progress or logging and should support `--log-level`.
 
-## Version Control
+## Change Compatibility
 
-The skill does not perform Git writes. After each reviewed round, recommend that the user manually commit and push the round to GitHub to preserve the research history.
-
-- Do not commit large raw data, processed matrices, model checkpoints, large figures, caches, or generated logs unless the project explicitly allows it.
-- Commits should have clear single-topic intent.
 - Before changing shared interfaces, update documentation and call sites.
-- Do not break existing results without explaining whether versions, configs, or downstream docs need updates.
+- Do not break existing results without explaining whether code/data/model versions, configs, or downstream docs need updates.
 
 ## Development Priority
 
 Prioritize by the paper's critical path rather than a fixed engineering maturity ladder:
 
 1. define the central question, candidate claims, decisive comparisons, and evidence thresholds;
-2. remove only the data or pipeline blockers needed for those comparisons;
-3. run decision-grade baselines and analyses at a scientifically informative scale;
-4. strengthen promising claims with strict splits, uncertainty, ablation, controls, replication, and external validation;
-5. add advanced models only when they test a scientific hypothesis or plausibly improve a paper-critical result;
-6. build mechanism/case-study analyses and the claim-to-figure story;
-7. harden, document, and package the workflows needed to reproduce the final evidence.
+2. perform only enough data work to define a valid target, split, metric, and comparison;
+3. design a simple baseline and serious candidate model, then run them at the earliest scientifically informative scale;
+4. decide GO, PIVOT, STOP, or INCONCLUSIVE immediately from the predeclared criteria;
+5. strengthen GO claims with strict splits, uncertainty, ablation, controls, replication, external validation, and mechanism analysis;
+6. harden, document, and package only the workflows needed for the surviving claim-to-figure story.
 
 Do not postpone scientifically informative runs until the repository reaches an imagined state of complete engineering polish.
 
@@ -144,7 +174,7 @@ Use low-token mode by default:
 - Read bounded excerpts, not whole large files.
 - Summarize large structured data programmatically.
 - Inspect logs by targeted markers such as `ERROR`, `WARNING`, and `Traceback`.
-- Inspect diffs incrementally: `git status --short`, `git diff --stat`, then targeted diffs.
+- Inspect only targeted changed files or bounded diffs relevant to the task.
 - Reuse existing summaries, results, runbooks, and checkpoints.
 - Do not repeatedly reload large IDE selections, logs, notebooks, manifests, or generated outputs.
 - Expand context only when necessary, and state why.

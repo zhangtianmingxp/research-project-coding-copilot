@@ -23,7 +23,7 @@ Do not load these files wholesale unless the user explicitly asks or the task re
 - generated result tables
 - model checkpoints
 - figures or binary files
-- full Git diffs
+- broad change listings or unrelated diffs
 - many old `ans_qes/result*.md` files
 - large `PROJECT_PLAN.md` or `PROJECT_RULES.md`
 

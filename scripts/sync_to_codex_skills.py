@@ -12,6 +12,7 @@ from pathlib import Path
 SKILL_NAME = "research-project-coding-copilot"
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 OBSOLETE_FILES = (
+    "assets/template/.gitignore",
     "assets/template/.research_agent/templates/commit_template.md",
     "references/original_bootstrap_prompt.md",
 )

@@ -2,7 +2,7 @@
 """Action CLI for the research-project-coding-copilot skill.
 
 This script operates on a target research repository. It never calls model
-APIs, never executes prompt tasks, and never performs Git write operations.
+APIs or executes prompt tasks.
 """
 
 from __future__ import annotations
@@ -13,7 +13,6 @@ import json
 import os
 import re
 import shutil
-import subprocess
 from pathlib import Path
 
 
@@ -144,8 +143,6 @@ def load_progress(root: Path) -> dict:
 
 
 def save_progress(root: Path, progress: dict) -> None:
-    for key in ("last_commit", "auto_commit", "auto_push"):
-        progress.pop(key, None)
     progress_path(root).parent.mkdir(parents=True, exist_ok=True)
     progress_path(root).write_text(
         json.dumps(progress, ensure_ascii=False, indent=2) + "\n",
@@ -448,6 +445,24 @@ def plan_report(root: Path) -> tuple[bool, list[str]]:
     return not warnings, warnings
 
 
+def plan_scope_advisories(root: Path) -> list[str]:
+    path = project_plan_path(root)
+    if path is None:
+        return []
+
+    text = path.read_text(encoding="utf-8")
+    nonblank_lines = sum(1 for line in text.splitlines() if line.strip())
+    size_bytes = len(text.encode("utf-8"))
+    if nonblank_lines <= 300 and size_bytes <= 20_000:
+        return []
+
+    return [
+        f"{path.name} is large ({nonblank_lines} nonblank lines, {size_bytes} bytes); "
+        "keep only the current decision gate detailed and leave inactive gates compact "
+        "(advisory only, not a blocking validity check)"
+    ]
+
+
 def update_state_for_prompt(root: Path, round_id: int, prompt_path: Path) -> None:
     progress = load_progress(root)
     progress.update(
@@ -491,10 +506,7 @@ def update_state_for_result(root: Path, round_id: int, result_path: Path) -> Non
             "last_result": rel(result_path, root),
             "auto_next": False,
             "auto_execute_prompt": False,
-            "open_issues": [
-                "result 已生成，等待用户审查。",
-                "建议审查通过后由用户自行提交并推送到 GitHub，保存本轮研究轨迹。"
-            ],
+            "open_issues": ["result 已生成，等待用户审查。"],
         }
     )
     matching_prompt = find_round_file(root, PROMPT_RE, round_id)
@@ -513,8 +525,7 @@ def update_state_for_result(root: Path, round_id: int, result_path: Path) -> Non
         f"- last_result: {rel(result_path, root)}\n"
         "- auto_next: false\n\n"
         "## Open Issues\n\n"
-        "- result 已生成，等待用户审查。\n"
-        "- 建议审查通过后由用户自行提交并推送到 GitHub，保存本轮研究轨迹。\n\n"
+        "- result 已生成，等待用户审查。\n\n"
         "## Notes\n\n"
         "- 不得自动生成下一轮 prompt。\n"
         "- 用户明确要求生成下一轮 prompt 后，才允许继续。\n"
@@ -599,22 +610,6 @@ def has_section_alias(sections: set[str], aliases: set[str]) -> bool:
     return any(section == alias or section.startswith(alias) for section in sections for alias in aliases)
 
 
-def git_changed_files(root: Path) -> list[str]:
-    try:
-        completed = subprocess.run(
-            ["git", "status", "--short", "--", "."],
-            cwd=root,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-    except OSError:
-        return []
-    if completed.returncode != 0:
-        return []
-    return [line.strip() for line in completed.stdout.splitlines() if line.strip()]
-
-
 def should_skip_context_path(path: Path, root: Path) -> bool:
     try:
         rel_parts = path.relative_to(root).parts
@@ -657,22 +652,6 @@ def sensitive_paths(root: Path) -> list[Path]:
             if is_sensitive_path(path):
                 found.append(path)
     return sorted(found, key=lambda item: rel(item, root).lower())
-
-
-def git_tracked_files(root: Path) -> set[str]:
-    try:
-        completed = subprocess.run(
-            ["git", "ls-files"],
-            cwd=root,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-    except OSError:
-        return set()
-    if completed.returncode != 0:
-        return set()
-    return {line.strip().replace("\\", "/") for line in completed.stdout.splitlines() if line.strip()}
 
 
 def format_bytes(size: int) -> str:
@@ -754,21 +733,11 @@ def cmd_context_summary(args: argparse.Namespace) -> int:
 
     sensitive = sensitive_paths(root)
     if sensitive:
-        tracked = git_tracked_files(root)
         print("sensitive_paths_not_read:")
         for path in sensitive[: args.max_items]:
-            status = "TRACKED" if rel(path, root) in tracked else "untracked_or_ignored"
-            print(f"- {rel(path, root)}: {status}")
+            print(f"- {rel(path, root)}")
         if len(sensitive) > args.max_items:
             print(f"- ... {len(sensitive) - args.max_items} more")
-
-    changed = git_changed_files(root)
-    if changed:
-        print("git_status_short:")
-        for line in changed[: args.max_items]:
-            print(f"- {line}")
-        if len(changed) > args.max_items:
-            print(f"- ... {len(changed) - args.max_items} more")
 
     print("context_rule: use this summary, rg, and bounded excerpts before opening large files")
     return 0
@@ -924,6 +893,8 @@ def cmd_check(args: argparse.Namespace) -> int:
         print("project_plan_warnings:")
         for warning in plan_warnings:
             print(f"- {warning}")
+    for advisory in plan_scope_advisories(root):
+        print(f"advisory: {advisory}")
     return 0
 
 
@@ -932,10 +903,12 @@ def cmd_plan_check(args: argparse.Namespace) -> int:
     ok, warnings = plan_report(root)
     if ok:
         print("plan-check: ok")
-        return 0
-    print("plan-check: warnings")
-    for warning in warnings:
-        print(f"- {warning}")
+    else:
+        print("plan-check: warnings")
+        for warning in warnings:
+            print(f"- {warning}")
+    for advisory in plan_scope_advisories(root):
+        print(f"advisory: {advisory}")
     return 0
 
 
@@ -1048,29 +1021,20 @@ def cmd_prompt_check(args: argparse.Namespace) -> int:
     for aliases in expected_groups:
         if not has_section_alias(sections, aliases):
             warnings.append(f"missing recommended section concept: {'/'.join(sorted(aliases))}")
-    print("prompt-check: ok" if not (args.strict and warnings) else "prompt-check: failed")
+    mark_drafted = getattr(args, "mark_drafted", False)
+    failed = bool(warnings) and (args.strict or mark_drafted)
+    print("prompt-check: failed" if failed else "prompt-check: ok")
     print(f"path: {rel(prompt_path, root)}")
     print(f"size: {format_bytes(size)}")
     print(f"numbered_tasks: {task_count}")
     for warning in warnings:
         print(f"warning: {warning}")
-    return 1 if args.strict and warnings else 0
-
-
-def tracked_large_files(root: Path, threshold: int) -> list[tuple[int, Path]]:
-    tracked = git_tracked_files(root)
-    found: list[tuple[int, Path]] = []
-    for relative in tracked:
-        path = root / relative
-        if not path.is_file():
-            continue
-        try:
-            size = path.stat().st_size
-        except OSError:
-            continue
-        if size >= threshold:
-            found.append((size, path))
-    return sorted(found, reverse=True)
+    if failed:
+        return 1
+    if mark_drafted:
+        update_state_for_prompt(root, args.round, prompt_path)
+        print("state: prompt_drafted")
+    return 0
 
 
 def cmd_preflight(args: argparse.Namespace) -> int:
@@ -1093,19 +1057,8 @@ def cmd_preflight(args: argparse.Namespace) -> int:
     if args.round is not None and find_round_file(root, PROMPT_RE, args.round) is None:
         problems.append(f"prompt for round {args.round} not found")
 
-    tracked = git_tracked_files(root)
     for path in sensitive_paths(root):
-        if rel(path, root) in tracked:
-            problems.append(f"sensitive-looking file is tracked by Git: {rel(path, root)}")
-        else:
-            warnings.append(f"sensitive-looking file found and not read: {rel(path, root)}")
-
-    for size, path in tracked_large_files(root, args.large_threshold):
-        warnings.append(f"large tracked file: {rel(path, root)} ({format_bytes(size)})")
-
-    changed = git_changed_files(root)
-    if changed:
-        warnings.append(f"Git working tree has {len(changed)} changed path(s)")
+        warnings.append(f"sensitive-looking file found and not read: {rel(path, root)}")
 
     profile = load_profile(root) or detected_project_profile(root)
     if not profile.get("environment_docs"):
@@ -1222,7 +1175,7 @@ def cmd_continue_plan(args: argparse.Namespace) -> int:
             "auto_execute_prompt": False,
             "open_issues": [
                 f"用户请求受限连续推进 {args.rounds} 轮：round {start} 到 {end}。",
-                "每轮仍必须生成 prompt/result；不得无限循环；GitHub 同步由用户自行完成。",
+                "每轮仍必须生成 prompt/result；不得无限循环。",
             ],
         }
     )
@@ -1289,7 +1242,10 @@ def build_parser() -> argparse.ArgumentParser:
     add_target(next_id)
     next_id.set_defaults(func=cmd_next_id)
 
-    draft = subparsers.add_parser("draft-prompt", help="create a prompt draft and stop")
+    draft = subparsers.add_parser(
+        "draft-prompt",
+        help="legacy manual scaffold; normal skill workflow reviews internally before writing the official prompt",
+    )
     add_target(draft)
     draft.add_argument("--round", type=int, default=None, help="round number; defaults to next id")
     title_group = draft.add_mutually_exclusive_group(required=True)
@@ -1311,6 +1267,11 @@ def build_parser() -> argparse.ArgumentParser:
     prompt_check.add_argument("--max-bytes", type=int, default=6_000, help="recommended maximum prompt size")
     prompt_check.add_argument("--max-tasks", type=int, default=3, help="recommended maximum numbered tasks")
     prompt_check.add_argument("--strict", action="store_true", help="fail on warnings")
+    prompt_check.add_argument(
+        "--mark-drafted",
+        action="store_true",
+        help="update state to prompt_drafted only when no warnings remain",
+    )
     prompt_check.set_defaults(func=cmd_prompt_check)
 
     result = subparsers.add_parser("result-check", help="validate resultn.md structure")
@@ -1320,10 +1281,9 @@ def build_parser() -> argparse.ArgumentParser:
     result.add_argument("--strict", action="store_true", help="require every recommended result concept")
     result.set_defaults(func=cmd_result_check)
 
-    preflight = subparsers.add_parser("preflight", help="check readiness, Git, secrets, and large tracked files")
+    preflight = subparsers.add_parser("preflight", help="check readiness, secrets, and runtime documentation")
     add_target(preflight)
     preflight.add_argument("--round", type=int, default=None, help="optional prompt round to verify")
-    preflight.add_argument("--large-threshold", type=int, default=10 * 1024 * 1024, help="large tracked file threshold")
     preflight.add_argument("--max-items", type=int, default=20, help="maximum warnings to print")
     preflight.set_defaults(func=cmd_preflight)
 

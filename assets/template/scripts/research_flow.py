@@ -29,8 +29,6 @@ def load_progress() -> dict:
 
 
 def save_progress(progress: dict) -> None:
-    for key in ("last_commit", "auto_commit", "auto_push"):
-        progress.pop(key, None)
     PROGRESS_PATH.write_text(
         json.dumps(progress, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
@@ -128,6 +126,8 @@ def cmd_check(_: argparse.Namespace) -> int:
 
     print("check: ok")
     print(f"next_prompt_id: {next_id()}")
+    for advisory in plan_scope_advisories():
+        print(f"advisory: {advisory}")
     return 0
 
 
@@ -148,6 +148,21 @@ def plan_warnings() -> list[str]:
     if any(token in text for token in ("请填写项目名称", "说明研究领域", "问题一", "请填写")):
         warnings.append("project_plan.md still contains template placeholders")
     return warnings
+
+
+def plan_scope_advisories() -> list[str]:
+    if not PLAN_PATH.exists():
+        return []
+    text = PLAN_PATH.read_text(encoding="utf-8")
+    nonblank_lines = sum(1 for line in text.splitlines() if line.strip())
+    size_bytes = len(text.encode("utf-8"))
+    if nonblank_lines <= 300 and size_bytes <= 20_000:
+        return []
+    return [
+        f"project_plan.md is large ({nonblank_lines} nonblank lines, {size_bytes} bytes); "
+        "keep only the current decision gate detailed and leave inactive gates compact "
+        "(advisory only, not a blocking validity check)"
+    ]
 
 
 def update_state_for_prompt(round_id: int, prompt_path: Path) -> None:
@@ -220,7 +235,7 @@ def cmd_init_round(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Interactive research workflow helper. It never calls LLM APIs, performs Git writes, or advances rounds automatically."
+        description="Interactive research workflow helper. It never calls LLM APIs or advances rounds automatically."
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -233,7 +248,10 @@ def build_parser() -> argparse.ArgumentParser:
     check = subparsers.add_parser("check", help="check required structure and numbering")
     check.set_defaults(func=cmd_check)
 
-    init_round = subparsers.add_parser("init-round", help="create a prompt draft and stop")
+    init_round = subparsers.add_parser(
+        "init-round",
+        help="legacy manual scaffold; normal skill workflow reviews internally before publishing",
+    )
     init_round.add_argument("--round", type=int, default=None, help="round number; defaults to next available id")
     init_round.add_argument("--title", default="任务", help="prompt title; use --title-file for reliable non-ASCII text")
     init_round.add_argument("--title-file", default=None, help="UTF-8 file containing the prompt title")
